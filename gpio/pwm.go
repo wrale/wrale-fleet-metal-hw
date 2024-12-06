@@ -15,6 +15,7 @@ type pwmState struct {
 	enabled   bool
 	dutyCycle uint32
 	mux       sync.Mutex
+	done      chan struct{}
 }
 
 // ConfigurePWM sets up a pin for PWM operation
@@ -48,6 +49,7 @@ func (c *Controller) ConfigurePWM(name string, pin gpio.PinIO, cfg PWMConfig) er
 		config:    cfg,
 		enabled:   false,
 		dutyCycle: cfg.DutyCycle,
+		done:      make(chan struct{}),
 	}
 
 	return nil
@@ -115,6 +117,7 @@ func (c *Controller) EnablePWM(name string) error {
 	}
 
 	state.enabled = true
+	state.done = make(chan struct{}) // Reset done channel
 	go c.pwmLoop(state) // Start PWM loop
 
 	return nil
@@ -131,13 +134,15 @@ func (c *Controller) DisablePWM(name string) error {
 	}
 
 	state.mux.Lock()
-	defer state.mux.Unlock()
-
 	if !state.enabled {
+		state.mux.Unlock()
 		return nil // Already disabled
 	}
 
 	state.enabled = false
+	state.mux.Unlock()
+
+	close(state.done) // Signal PWM loop to exit
 	state.pin.Out(gpio.Low) // Set pin low
 
 	return nil
@@ -164,32 +169,37 @@ func (c *Controller) pwmLoop(state *pwmState) {
 	period := time.Duration(1000000000/state.config.Frequency) * time.Nanosecond
 	
 	for {
-		state.mux.Lock()
-		if !state.enabled {
-			state.mux.Unlock()
+		select {
+		case <-state.done:
 			return
-		}
-		
-		dutyCycle := state.dutyCycle
-		state.mux.Unlock()
+		default:
+			state.mux.Lock()
+			if !state.enabled {
+				state.mux.Unlock()
+				return
+			}
+			
+			dutyCycle := state.dutyCycle
+			state.mux.Unlock()
 
-		if dutyCycle == 0 {
-			state.pin.Out(gpio.Low)
-			time.Sleep(period)
-			continue
-		}
-		if dutyCycle == 100 {
+			if dutyCycle == 0 {
+				state.pin.Out(gpio.Low)
+				time.Sleep(period)
+				continue
+			}
+			if dutyCycle == 100 {
+				state.pin.Out(gpio.High)
+				time.Sleep(period)
+				continue
+			}
+
+			onTime := period * time.Duration(dutyCycle) / 100
+			offTime := period - onTime
+
 			state.pin.Out(gpio.High)
-			time.Sleep(period)
-			continue
+			time.Sleep(onTime)
+			state.pin.Out(gpio.Low)
+			time.Sleep(offTime)
 		}
-
-		onTime := period * time.Duration(dutyCycle) / 100
-		offTime := period - onTime
-
-		state.pin.Out(gpio.High)
-		time.Sleep(onTime)
-		state.pin.Out(gpio.Low)
-		time.Sleep(offTime)
 	}
 }
