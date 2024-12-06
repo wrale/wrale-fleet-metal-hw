@@ -15,12 +15,14 @@ type mockInterruptPin struct {
 	mux   sync.RWMutex
 	state bool
 	edge  gpio.Edge
+	pullState gpio.Pull
 }
 
 func (m *mockInterruptPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 	m.edge = edge
+	m.pullState = pull
 	return nil
 }
 
@@ -48,6 +50,7 @@ func (m *mockInterruptPin) Function() string { return "In/Out" }
 func (m *mockInterruptPin) Halt() error    { return nil }
 func (m *mockInterruptPin) DefaultPull() gpio.Pull { return gpio.Float }
 func (m *mockInterruptPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
+func (m *mockInterruptPin) Pull() gpio.Pull { return m.pullState }
 
 func TestInterrupts(t *testing.T) {
 	// Create controller

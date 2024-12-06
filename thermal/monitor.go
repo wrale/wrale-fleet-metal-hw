@@ -56,8 +56,10 @@ func New(cfg Config) (*Monitor, error) {
 		onCritical:     cfg.OnCritical,
 	}
 
-	if err := m.InitializeFanControl(); err != nil {
-		return nil, fmt.Errorf("failed to initialize fan control: %w", err)
+	if m.fanPin != "" {
+		if err := m.InitializeFanControl(); err != nil {
+			return nil, fmt.Errorf("failed to initialize fan: %w", err)
+		}
 	}
 
 	return m, nil
@@ -68,6 +70,11 @@ func (m *Monitor) GetState() ThermalState {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 	return m.state
+}
+
+// SetFanSpeed sets the fan speed directly (0-100)
+func (m *Monitor) SetFanSpeed(speed int) error {
+	return m.setFanSpeed(speed)
 }
 
 // Monitor starts monitoring thermal state in the background

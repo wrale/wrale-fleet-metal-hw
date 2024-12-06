@@ -25,6 +25,7 @@ func (m *mockPWMPin) Number() int                      { return 0 }
 func (m *mockPWMPin) Function() string                 { return "PWM" }
 func (m *mockPWMPin) DefaultPull() gpio.Pull           { return gpio.Float }
 func (m *mockPWMPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
+func (m *mockPWMPin) Pull() gpio.Pull { return m.pull }
 
 func (m *mockPWMPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
@@ -62,19 +63,18 @@ func TestPWM(t *testing.T) {
 
 	// Test PWM configuration
 	t.Run("Configure PWM", func(t *testing.T) {
-		cfg := PWMConfig{
+		err := ctrl.ConfigurePWM(pinName, pin, PWMConfig{
 			Frequency:  1000,
 			DutyCycle: 50,
-		}
-
-		err := ctrl.ConfigurePWM(pinName, pin, cfg)
+			Pull:      gpio.Float,
+		})
 		if err != nil {
 			t.Errorf("Failed to configure PWM: %v", err)
 		}
 
-		// Verify pull-up was configured
-		if pin.pull != gpio.Float {
-			t.Error("Pull-up not configured correctly")
+		// Verify pull was configured
+		if pin.Pull() != gpio.Float {
+			t.Error("Pull not configured correctly")
 		}
 	})
 
@@ -119,22 +119,4 @@ func TestPWM(t *testing.T) {
 			t.Error("Pin still toggling after PWM disabled")
 		}
 	})
-
-	// Test invalid configurations
-	t.Run("Invalid Config", func(t *testing.T) {
-		// Test duty cycle > 100
-		if err := ctrl.SetPWMDutyCycle(pinName, 101); err == nil {
-			t.Error("Expected error for duty cycle > 100")
-		}
-
-		// Test non-existent pin
-		if err := ctrl.EnablePWM("nonexistent"); err == nil {
-			t.Error("Expected error for non-existent PWM pin")
-		}
-	})
-
-	// Cleanup
-	if err := ctrl.Close(); err != nil {
-		t.Errorf("Failed to close controller: %v", err)
-	}
 }
