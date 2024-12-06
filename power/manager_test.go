@@ -7,6 +7,7 @@ import (
 
 	hw_gpio "github.com/wrale/wrale-fleet-metal-hw/gpio"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/physic"
 )
 
 // mockPin implements a basic GPIO pin for testing
@@ -36,6 +37,8 @@ func (m *mockPin) Out(l gpio.Level) error {
 	return nil
 }
 func (m *mockPin) Pull() gpio.Pull { return m.pull }
+func (m *mockPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
+func (m *mockPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestPowerManager(t *testing.T) {
 	gpioCtrl, err := hw_gpio.New()

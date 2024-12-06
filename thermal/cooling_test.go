@@ -3,6 +3,7 @@ package thermal
 import (
 	"sync"
 	"testing"
+	"time"
 
 	hw_gpio "github.com/wrale/wrale-fleet-metal-hw/gpio"
 	"periph.io/x/conn/v3/gpio"
@@ -51,6 +52,7 @@ func (m *mockFanPin) Pull() gpio.Pull {
 	defer m.Unlock()
 	return m.pull
 }
+func (m *mockFanPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 // mockThrottlePin implements a mock GPIO pin for throttle control
 type mockThrottlePin struct {
@@ -89,6 +91,7 @@ func (m *mockThrottlePin) Pull() gpio.Pull {
 	return gpio.Float
 }
 func (m *mockThrottlePin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
+func (m *mockThrottlePin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestCooling(t *testing.T) {
 	gpioCtrl, err := hw_gpio.New()
