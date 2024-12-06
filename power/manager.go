@@ -1,13 +1,11 @@
 package power
 
 import (
-	"context"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
 
 // Manager handles power-related operations
@@ -58,7 +56,7 @@ func New(cfg Config) (*Manager, error) {
 
 	// Initialize power source pins
 	for source, pin := range cfg.PowerPins {
-		if err := m.gpio.ConfigurePin(pin, nil); err != nil {
+		if err := m.gpio.ConfigurePin(pin, nil, gpio.Float); err != nil {
 			return nil, fmt.Errorf("failed to configure power pin %s: %w", pin, err)
 		}
 		m.state.AvailablePower[source] = false

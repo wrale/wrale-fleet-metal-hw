@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"periph.io/x/conn/v3/gpio"
 )
 
 // mockInterruptPin mocks a pin with interrupt capabilities
@@ -37,6 +39,13 @@ func (m *mockInterruptPin) Read() gpio.Level {
 	return gpio.Low
 }
 
+// Implement required PinIO methods
+func (m *mockInterruptPin) String() string { return "mock_pin" }
+func (m *mockInterruptPin) Name() string   { return "MOCK_PIN" }
+func (m *mockInterruptPin) Number() int    { return 0 }
+func (m *mockInterruptPin) Function() string { return "In/Out" }
+func (m *mockInterruptPin) Halt() error    { return nil }
+
 func TestInterrupts(t *testing.T) {
 	// Create controller
 	ctrl, err := New()
@@ -47,12 +56,13 @@ func TestInterrupts(t *testing.T) {
 	// Setup test pin
 	pin := &mockInterruptPin{}
 	pinName := "test_pin"
-	if err := ctrl.ConfigurePin(pinName, pin); err != nil {
+	if err := ctrl.ConfigurePin(pinName, pin, gpio.PullUp); err != nil {
 		t.Fatalf("Failed to configure pin: %v", err)
 	}
 
 	// Track interrupt calls
-	var (interruptCount int
+	var (
+		interruptCount int
 		interruptMux   sync.RWMutex
 	)
 
@@ -83,7 +93,9 @@ func TestInterrupts(t *testing.T) {
 	// Test interrupt triggering
 	t.Run("Basic Interrupt", func(t *testing.T) {
 		// Trigger interrupt
-		pin.Out(gpio.High)
+		if err := pin.Out(gpio.High); err != nil {
+			t.Errorf("Failed to set pin high: %v", err)
+		}
 		time.Sleep(20 * time.Millisecond)
 
 		// Check if handler was called

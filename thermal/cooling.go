@@ -1,6 +1,8 @@
 package thermal
 
 import (
+	"fmt"
+
 	"periph.io/x/conn/v3/gpio"
 )
 
@@ -62,13 +64,13 @@ func (m *Monitor) InitializeFanControl() error {
 	}
 
 	// Configure PWM for fan control
-	pin, err := m.gpio.ConfigurePWM(m.fanPin, nil, gpio.PWMConfig{
+	err := m.gpio.ConfigurePWM(m.fanPin, nil, gpio.PWMConfig{
 		Frequency:  fanPWMFrequency,
-		DutyCycle: fanSpeedLow,  // Start at low speed
-		Pull:      gpio.Float,   // Most fans don't need pull up/down
+		DutyCycle: uint32(fanSpeedLow),
+		Pull:      gpio.Float,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to configure fan PWM: %w", err)
 	}
 
 	// Enable PWM output

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/physic"
 )
 
 // PWMConfig holds PWM pin configuration
@@ -62,6 +61,23 @@ func (c *Controller) ConfigurePWM(name string, pin gpio.PinIO, cfg PWMConfig) er
 	}
 
 	return nil
+}
+
+// updatePWM updates the PWM output for a pin
+func (c *Controller) updatePWM(state *pwmState) error {
+	if !state.enabled {
+		return nil
+	}
+	
+	// Update duty cycle immediately
+	if state.dutyCycle == 0 {
+		return state.pin.Out(gpio.Low)
+	}
+	if state.dutyCycle == 100 {
+		return state.pin.Out(gpio.High)
+	}
+
+	return nil // PWM loop will handle intermediate values
 }
 
 // SetPWMDutyCycle updates the PWM duty cycle (0-100)

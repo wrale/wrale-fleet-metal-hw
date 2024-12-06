@@ -3,7 +3,6 @@ package gpio
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"periph.io/x/conn/v3/gpio"

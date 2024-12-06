@@ -1,7 +1,6 @@
 package gpio
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
