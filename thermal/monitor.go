@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	pkggpio "github.com/wrale/wrale-fleet-metal-hw/gpio"
-	"periph.io/x/conn/v3/gpio"
+	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
 
 // Monitor handles thermal monitoring and control
@@ -16,7 +15,7 @@ type Monitor struct {
 	state ThermalState
 
 	// Hardware interface
-	gpio       *pkggpio.Controller
+	gpio       *gpio.Controller
 	fanPin     string
 	throttlePin string
 
@@ -57,18 +56,8 @@ func New(cfg Config) (*Monitor, error) {
 		onCritical:     cfg.OnCritical,
 	}
 
-	// Configure GPIO pins
-	if m.fanPin != "" {
-		pin := gpio.PinIO(&gpio.BasicPin{})
-		if err := m.gpio.ConfigurePin(m.fanPin, pin, gpio.Float); err != nil {
-			return nil, fmt.Errorf("failed to configure fan pin: %w", err)
-		}
-	}
-	if m.throttlePin != "" {
-		pin := gpio.PinIO(&gpio.BasicPin{})
-		if err := m.gpio.ConfigurePin(m.throttlePin, pin, gpio.Float); err != nil {
-			return nil, fmt.Errorf("failed to configure throttle pin: %w", err)
-		}
+	if err := m.InitializeFanControl(); err != nil {
+		return nil, fmt.Errorf("failed to initialize fan control: %w", err)
 	}
 
 	return m, nil

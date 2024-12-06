@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
 
 // mockGPIO implements a mock GPIO controller for testing
@@ -13,13 +15,12 @@ type mockGPIO struct {
 	pinStates map[string]bool
 }
 
-func newMockGPIO() *mockGPIO {
-	return &mockGPIO{
-		pinStates: make(map[string]bool),
-	}
+func newMockGPIO() *gpio.Controller {
+	ctrl, _ := gpio.New()
+	return ctrl
 }
 
-func (m *mockGPIO) ConfigurePin(name string, _ interface{}) error {
+func (m *mockGPIO) ConfigurePin(name string, _ interface{}, _ interface{}) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 	m.pinStates[name] = false
@@ -83,23 +84,19 @@ func (m *mockStateStore) LogEvent(ctx context.Context, deviceID string, eventTyp
 
 func TestSecurityManager(t *testing.T) {
 	// Setup mocks
-	mockGPIO := newMockGPIO()
+	gpioCtrl := newMockGPIO()
 	mockStore := newMockStateStore()
 
 	// Setup test pins
-	caseSensor := "case_sensor"
-	motionSensor := "motion_sensor"
-	voltSensor := "volt_sensor"
+	caseSensor := "test_case"
+	motionSensor := "test_motion"
+	voltSensor := "test_volt"
 	deviceID := "test_device_001"
-
-	mockGPIO.ConfigurePin(caseSensor, nil)
-	mockGPIO.ConfigurePin(motionSensor, nil)
-	mockGPIO.ConfigurePin(voltSensor, nil)
 
 	// Create security manager
 	var tamperDetected bool
 	manager, err := New(Config{
-		GPIO:          mockGPIO,
+		GPIO:          gpioCtrl,
 		CaseSensor:    caseSensor,
 		MotionSensor:  motionSensor,
 		VoltageSensor: voltSensor,
@@ -114,7 +111,7 @@ func TestSecurityManager(t *testing.T) {
 		t.Fatalf("Failed to create security manager: %v", err)
 	}
 
-	// Start monitoring in background
+	// Start monitoring
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
@@ -131,7 +128,9 @@ func TestSecurityManager(t *testing.T) {
 	}
 
 	// Simulate case tamper
-	mockGPIO.SetPinState(caseSensor, true)
+	if err := gpioCtrl.SetPinState(caseSensor, true); err != nil {
+		t.Errorf("Failed to set case sensor: %v", err)
+	}
 	time.Sleep(200 * time.Millisecond)
 
 	state = manager.GetState()

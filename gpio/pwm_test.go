@@ -22,6 +22,7 @@ func (m *mockPWMPin) Halt() error                      { return nil }
 func (m *mockPWMPin) Name() string                     { return "MOCK_PWM" }
 func (m *mockPWMPin) Number() int                      { return 0 }
 func (m *mockPWMPin) Function() string                 { return "PWM" }
+func (m *mockPWMPin) DefaultPull() gpio.Pull           { return gpio.Float }
 
 func (m *mockPWMPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
@@ -132,7 +133,7 @@ func TestPWM(t *testing.T) {
 
 		// Test invalid frequency
 		cfg := PWMConfig{
-			Frequency: 0,
+			Frequency:  0,
 			DutyCycle: 50,
 		}
 		if err := ctrl.ConfigurePWM("bad_freq", pin, cfg); err == nil {

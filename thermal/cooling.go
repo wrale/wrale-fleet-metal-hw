@@ -3,7 +3,7 @@ package thermal
 import (
 	"fmt"
 
-	"periph.io/x/conn/v3/gpio"
+	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
 
 // Fan speed ranges and PWM settings
@@ -63,11 +63,9 @@ func (m *Monitor) InitializeFanControl() error {
 		return nil // No fan control configured
 	}
 
-	// Configure PWM for fan control
 	err := m.gpio.ConfigurePWM(m.fanPin, nil, gpio.PWMConfig{
 		Frequency:  fanPWMFrequency,
 		DutyCycle: uint32(fanSpeedLow),
-		Pull:      gpio.Float,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to configure fan PWM: %w", err)

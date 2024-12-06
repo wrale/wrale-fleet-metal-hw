@@ -45,6 +45,7 @@ func (m *mockInterruptPin) Name() string   { return "MOCK_PIN" }
 func (m *mockInterruptPin) Number() int    { return 0 }
 func (m *mockInterruptPin) Function() string { return "In/Out" }
 func (m *mockInterruptPin) Halt() error    { return nil }
+func (m *mockInterruptPin) DefaultPull() gpio.Pull { return gpio.Float }
 
 func TestInterrupts(t *testing.T) {
 	// Create controller
