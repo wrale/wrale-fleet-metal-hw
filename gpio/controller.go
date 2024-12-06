@@ -8,6 +8,12 @@ import (
 	"periph.io/x/host/v3"
 )
 
+// simPin tracks simulated pin state
+type simPin struct {
+	value bool
+	pull  gpio.Pull
+}
+
 // Controller manages GPIO pins and their states
 type Controller struct {
 	mux        sync.RWMutex
@@ -18,7 +24,7 @@ type Controller struct {
 	simulation bool
 	
 	// Simulated state
-	simPinStates map[string]bool
+	simPins map[string]*simPin
 }
 
 // New creates a new GPIO controller
@@ -42,7 +48,7 @@ func New(opts ...Option) (*Controller, error) {
 		pwmPins:    make(map[string]*pwmState),
 		enabled:    true,
 		simulation: options.SimulationMode,
-		simPinStates: make(map[string]bool),
+		simPins:    make(map[string]*simPin),
 	}, nil
 }
 
@@ -57,7 +63,16 @@ func (c *Controller) ConfigurePin(name string, pin gpio.PinIO, pull gpio.Pull) e
 
 	if c.simulation {
 		c.pins[name] = pin // Allow nil pin in simulation mode
-		c.simPinStates[name] = false
+		c.simPins[name] = &simPin{
+			value: false,
+			pull:  pull,
+		}
+		// Even in simulation mode, configure the pin if one was provided
+		if pin != nil {
+			if err := pin.In(pull, gpio.NoEdge); err != nil {
+				return fmt.Errorf("failed to configure pin: %w", err)
+			}
+		}
 		return nil
 	}
 
@@ -80,7 +95,18 @@ func (c *Controller) SetPinState(name string, high bool) error {
 	defer c.mux.Unlock()
 
 	if c.simulation {
-		c.simPinStates[name] = high
+		simPin, exists := c.simPins[name]
+		if !exists {
+			return fmt.Errorf("pin %s not found", name)
+		}
+		simPin.value = high
+		// Also set physical pin if one exists
+		if pin := c.pins[name]; pin != nil {
+			if high {
+				return pin.Out(gpio.High)
+			}
+			return pin.Out(gpio.Low)
+		}
 		return nil
 	}
 
@@ -105,11 +131,15 @@ func (c *Controller) GetPinState(name string) (bool, error) {
 	defer c.mux.RUnlock()
 
 	if c.simulation {
-		state, exists := c.simPinStates[name]
+		simPin, exists := c.simPins[name]
 		if !exists {
 			return false, fmt.Errorf("pin %s not found", name)
 		}
-		return state, nil
+		// Also read physical pin if one exists
+		if pin := c.pins[name]; pin != nil {
+			return pin.Read() == gpio.High, nil
+		}
+		return simPin.value, nil
 	}
 
 	pin, exists := c.pins[name]
@@ -122,6 +152,31 @@ func (c *Controller) GetPinState(name string) (bool, error) {
 	}
 
 	return pin.Read() == gpio.High, nil
+}
+
+// GetPinPull reads the current pull-up/down configuration of a GPIO pin
+func (c *Controller) GetPinPull(name string) (gpio.Pull, error) {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+
+	if c.simulation {
+		simPin, exists := c.simPins[name]
+		if !exists {
+			return gpio.Float, fmt.Errorf("pin %s not found", name)
+		}
+		return simPin.pull, nil
+	}
+
+	pin, exists := c.pins[name]
+	if !exists {
+		return gpio.Float, fmt.Errorf("pin %s not found", name)
+	}
+
+	if pin == nil {
+		return gpio.Float, fmt.Errorf("pin %s is nil", name)
+	}
+
+	return pin.Pull(), nil
 }
 
 // Close releases all GPIO resources

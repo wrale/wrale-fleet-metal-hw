@@ -2,6 +2,7 @@ package thermal
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
@@ -19,6 +20,9 @@ const (
 
 // updateCooling adjusts cooling based on temperatures
 func (m *Monitor) updateCooling() {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	// Determine maximum temperature
 	maxTemp := m.state.CPUTemp
 	if m.state.GPUTemp > maxTemp {
@@ -30,30 +34,29 @@ func (m *Monitor) updateCooling() {
 	switch {
 	case maxTemp >= cpuTempCritical:
 		fanSpeed = fanSpeedHigh
-		m.setThrottling(true)
+		m.setThrottlingLocked(true)
 	case maxTemp >= cpuTempWarning:
 		// Linear interpolation between medium and high speed
 		tempRange := cpuTempCritical - cpuTempWarning
 		tempAboveWarning := maxTemp - cpuTempWarning
 		speedRange := fanSpeedHigh - fanSpeedMedium
 		fanSpeed = fanSpeedMedium + int(float64(speedRange)*(tempAboveWarning/tempRange))
-		m.setThrottling(false)
+		m.setThrottlingLocked(false)
 	case maxTemp >= (cpuTempWarning/2):
 		// Linear interpolation between low and medium speed
 		tempRange := cpuTempWarning - (cpuTempWarning/2)
 		tempAboveMin := maxTemp - (cpuTempWarning/2)
 		speedRange := fanSpeedMedium - fanSpeedLow
 		fanSpeed = fanSpeedLow + int(float64(speedRange)*(tempAboveMin/tempRange))
-		m.setThrottling(false)
+		m.setThrottlingLocked(false)
 	default:
 		fanSpeed = fanSpeedLow
-		m.setThrottling(false)
+		m.setThrottlingLocked(false)
 	}
 
 	// Update fan speed if changed
 	if fanSpeed != m.state.FanSpeed {
-		m.setFanSpeed(fanSpeed)
-		m.state.FanSpeed = fanSpeed
+		m.setFanSpeedLocked(fanSpeed)
 	}
 }
 
@@ -71,12 +74,20 @@ func (m *Monitor) InitializeFanControl() error {
 		return fmt.Errorf("failed to configure fan PWM: %w", err)
 	}
 
-	// Enable PWM output
-	return m.gpio.EnablePWM(m.fanPin)
+	// Enable PWM output and set initial state
+	if err := m.gpio.EnablePWM(m.fanPin); err != nil {
+		return err
+	}
+
+	m.mux.Lock()
+	m.state.FanSpeed = fanSpeedLow
+	m.mux.Unlock()
+
+	return nil
 }
 
-// setFanSpeed controls fan speed using PWM
-func (m *Monitor) setFanSpeed(speed int) {
+// setFanSpeedLocked controls fan speed using PWM - must be called with lock held
+func (m *Monitor) setFanSpeedLocked(speed int) {
 	if m.fanPin == "" {
 		return
 	}
@@ -93,8 +104,8 @@ func (m *Monitor) setFanSpeed(speed int) {
 	m.state.FanSpeed = speed
 }
 
-// setThrottling controls the throttling GPIO pin
-func (m *Monitor) setThrottling(enabled bool) {
+// setThrottlingLocked controls the throttling GPIO pin - must be called with lock held
+func (m *Monitor) setThrottlingLocked(enabled bool) {
 	if m.throttlePin == "" {
 		return
 	}
@@ -110,5 +121,14 @@ func (m *Monitor) Close() error {
 			return fmt.Errorf("failed to disable fan PWM: %w", err)
 		}
 	}
+	return nil
+}
+
+// setFanSpeed is a public method for controlling fan speed
+func (m *Monitor) SetFanSpeed(speed int) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+	
+	m.setFanSpeedLocked(speed)
 	return nil
 }
