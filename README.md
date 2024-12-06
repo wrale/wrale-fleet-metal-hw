@@ -1,5 +1,8 @@
 # Wrale Fleet Metal Hardware
 
+[![Go](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/go.yml/badge.svg)](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/go.yml)
+[![Lint](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/lint.yml/badge.svg)](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/lint.yml)
+
 Pure hardware management layer for Wrale Fleet. Handles direct hardware interactions, raw sensor data, and hardware-level safety for Raspberry Pi devices. Part of the Wrale Fleet Metal project.
 
 ## Feature Status
@@ -109,6 +112,13 @@ The package includes a simulation mode that allows testing without physical hard
 - Integration test coverage
 - Physical hardware validation (requires RPi)
 
+### Continuous Integration
+The project includes GitHub Actions workflows for:
+- Automated testing on each PR and push
+- Go linting and static analysis
+- Race condition detection
+- Code quality checks
+
 ## Directory Structure
 ```
 .
@@ -152,10 +162,13 @@ This package provides the hardware abstraction layer for the Wrale Fleet Metal s
 ### Testing
 ```bash
 # Run all tests in simulation mode
-go test ./...
+go test -v -race ./...
+
+# Run linting checks
+golangci-lint run
 
 # Test specific hardware subsystem
-go test ./power/...
+go test -v -race ./power/...
 ```
 
 See [Hardware Testing Guide](docs/HARDWARE_TESTING.md) for physical device testing details.
