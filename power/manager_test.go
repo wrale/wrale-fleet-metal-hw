@@ -6,12 +6,48 @@ import (
 	"time"
 
 	"github.com/wrale/wrale-fleet-metal-hw/gpio"
+	"periph.io/x/conn/v3/gpio"
 )
+
+// mockPin implements a basic GPIO pin for testing
+type mockPin struct {
+	state bool
+}
+
+func (m *mockPin) String() string             { return "mock" }
+func (m *mockPin) Halt() error                { return nil }
+func (m *mockPin) Name() string               { return "MOCK" }
+func (m *mockPin) Number() int                { return 0 }
+func (m *mockPin) Function() string           { return "In/Out" }
+func (m *mockPin) DefaultPull() gpio.Pull     { return gpio.Float }
+func (m *mockPin) In(pull gpio.Pull, edge gpio.Edge) error { return nil }
+func (m *mockPin) Read() gpio.Level {
+	if m.state {
+		return gpio.High
+	}
+	return gpio.Low
+}
+func (m *mockPin) Out(l gpio.Level) error {
+	m.state = l == gpio.High
+	return nil
+}
+func (m *mockPin) Pull() gpio.Pull { return gpio.Float }
 
 func TestPowerManager(t *testing.T) {
 	gpioCtrl, err := gpio.New()
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
+	}
+
+	mainPin := &mockPin{}
+	batteryPin := &mockPin{}
+
+	// Configure pins before creating power manager
+	if err := gpioCtrl.ConfigurePin("main_power", mainPin, gpio.PullUp); err != nil {
+		t.Fatalf("Failed to configure main power pin: %v", err)
+	}
+	if err := gpioCtrl.ConfigurePin("battery_power", batteryPin, gpio.PullUp); err != nil {
+		t.Fatalf("Failed to configure battery power pin: %v", err)
 	}
 
 	manager, err := New(Config{
@@ -20,9 +56,9 @@ func TestPowerManager(t *testing.T) {
 			MainPower:    "main_power",
 			BatteryPower: "battery_power",
 		},
-		BatteryADCPath: "/dev/null",
-		VoltageADCPath: "/dev/null",
-		CurrentADCPath: "/dev/null",
+		BatteryADCPath:  "/dev/null",
+		VoltageADCPath:  "/dev/null",
+		CurrentADCPath:  "/dev/null",
 		MonitorInterval: 100 * time.Millisecond,
 	})
 
