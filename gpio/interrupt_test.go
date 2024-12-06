@@ -54,8 +54,8 @@ func (m *mockInterruptPin) Pull() gpio.Pull { return m.pullState }
 func (m *mockInterruptPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestInterrupts(t *testing.T) {
-	// Create controller
-	ctrl, err := New()
+	// Create controller in simulation mode
+	ctrl, err := New(WithSimulation())
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestInterrupts(t *testing.T) {
 		t.Fatalf("Failed to enable interrupt: %v", err)
 	}
 
-	// Use channel to track monitor completion
+	// Use buffered channel to prevent potential deadlock
 	monitorDone := make(chan error, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()

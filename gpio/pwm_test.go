@@ -68,7 +68,8 @@ func TestPWM(t *testing.T) {
 		t.Skip("Skipping PWM test in short mode")
 	}
 
-	ctrl, err := New()
+	// Create controller in simulation mode
+	ctrl, err := New(WithSimulation())
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}

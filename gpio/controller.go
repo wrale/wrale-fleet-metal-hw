@@ -15,13 +15,22 @@ type Controller struct {
 	interrupts map[string]*interruptState
 	pwmPins    map[string]*pwmState
 	enabled    bool
+	simulation bool
 }
 
 // New creates a new GPIO controller
-func New() (*Controller, error) {
-	// Initialize host for GPIO access
-	if _, err := host.Init(); err != nil {
-		return nil, fmt.Errorf("failed to initialize GPIO host: %w", err)
+func New(opts ...Option) (*Controller, error) {
+	// Process options
+	options := &Options{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// Initialize host for GPIO access if not in simulation mode
+	if !options.SimulationMode {
+		if _, err := host.Init(); err != nil {
+			return nil, fmt.Errorf("failed to initialize GPIO host: %w", err)
+		}
 	}
 
 	return &Controller{
@@ -29,6 +38,7 @@ func New() (*Controller, error) {
 		interrupts: make(map[string]*interruptState),
 		pwmPins:    make(map[string]*pwmState),
 		enabled:    true,
+		simulation: options.SimulationMode,
 	}, nil
 }
 
@@ -41,8 +51,11 @@ func (c *Controller) ConfigurePin(name string, pin gpio.PinIO, pull gpio.Pull) e
 		return fmt.Errorf("GPIO controller is disabled")
 	}
 
-	if err := pin.In(pull, gpio.NoEdge); err != nil {
-		return fmt.Errorf("failed to configure pin: %w", err)
+	// Skip actual hardware configuration in simulation mode
+	if !c.simulation {
+		if err := pin.In(pull, gpio.NoEdge); err != nil {
+			return fmt.Errorf("failed to configure pin: %w", err)
+		}
 	}
 
 	c.pins[name] = pin
@@ -57,6 +70,11 @@ func (c *Controller) SetPinState(name string, high bool) error {
 	pin, exists := c.pins[name]
 	if !exists {
 		return fmt.Errorf("pin %s not found", name)
+	}
+
+	// Skip actual hardware writes in simulation mode
+	if c.simulation {
+		return nil
 	}
 
 	if high {
@@ -75,6 +93,11 @@ func (c *Controller) GetPinState(name string) (bool, error) {
 		return false, fmt.Errorf("pin %s not found", name)
 	}
 
+	// In simulation mode, return default value
+	if c.simulation {
+		return false, nil
+	}
+
 	return pin.Read() == gpio.High, nil
 }
 
@@ -83,14 +106,16 @@ func (c *Controller) Close() error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	// Disable all PWM outputs
-	for name := range c.pwmPins {
-		c.DisablePWM(name)
-	}
+	if !c.simulation {
+		// Disable all PWM outputs
+		for name := range c.pwmPins {
+			c.DisablePWM(name)
+		}
 
-	// Set all pins to safe state
-	for _, pin := range c.pins {
-		pin.Out(gpio.Low)
+		// Set all pins to safe state
+		for _, pin := range c.pins {
+			pin.Out(gpio.Low)
+		}
 	}
 
 	c.enabled = false

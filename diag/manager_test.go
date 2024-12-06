@@ -24,11 +24,11 @@ type mockHardware struct {
 }
 
 func NewMockGPIO() (*gpio.Controller, error) {
-	return gpio.New()
+	return gpio.New(gpio.WithSimulation())
 }
 
 func TestDiagnostics(t *testing.T) {
-	// Create real GPIO controller for tests
+	// Create GPIO controller for tests in simulation mode
 	gpioCtrl, err := NewMockGPIO()
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
@@ -58,7 +58,7 @@ func TestDiagnostics(t *testing.T) {
 	// Test GPIO diagnostics
 	t.Run("GPIO Tests", func(t *testing.T) {
 		if err := mgr.TestGPIO(context.Background()); err != nil {
-			// Expect this to fail since we don't have real hardware
+			// Expect this to fail since we're in simulation mode
 			t.Skip("Skipping GPIO test on simulation")
 		}
 	})
@@ -66,7 +66,7 @@ func TestDiagnostics(t *testing.T) {
 	// Test power diagnostics
 	t.Run("Power Tests", func(t *testing.T) {
 		if err := mgr.TestPower(context.Background()); err != nil {
-			// Expect this to fail since we don't have real hardware
+			// Expect this to fail since we're in simulation mode
 			t.Skip("Skipping power test on simulation")
 		}
 	})
@@ -74,7 +74,7 @@ func TestDiagnostics(t *testing.T) {
 	// Test thermal diagnostics  
 	t.Run("Thermal Tests", func(t *testing.T) {
 		if err := mgr.TestThermal(context.Background()); err != nil {
-			// Expect this to fail since we don't have real hardware
+			// Expect this to fail since we're in simulation mode
 			t.Skip("Skipping thermal test on simulation")
 		}
 	})
@@ -82,7 +82,7 @@ func TestDiagnostics(t *testing.T) {
 	// Test security diagnostics
 	t.Run("Security Tests", func(t *testing.T) {
 		if err := mgr.TestSecurity(context.Background()); err != nil {
-			// Expect this to fail since we don't have real hardware
+			// Expect this to fail since we're in simulation mode
 			t.Skip("Skipping security test on simulation")
 		}
 	})
@@ -90,7 +90,7 @@ func TestDiagnostics(t *testing.T) {
 	// Test complete diagnostic suite
 	t.Run("Full Diagnostic Suite", func(t *testing.T) {
 		if err := mgr.RunAll(context.Background()); err != nil {
-			// Expect this to fail since we don't have real hardware
+			// Expect this to fail since we're in simulation mode
 			t.Skip("Skipping full test suite on simulation")
 		}
 
