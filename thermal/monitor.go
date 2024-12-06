@@ -88,15 +88,3 @@ func (m *Monitor) Monitor(ctx context.Context) error {
 		}
 	}
 }
-
-// SetFanSpeed sets fan speed percentage (0-100)
-func (m *Monitor) SetFanSpeed(speed int) error {
-	if speed < fanSpeedLow {
-		speed = fanSpeedLow
-	}
-	if speed > fanSpeedHigh {
-		speed = fanSpeedHigh
-	}
-	m.setFanSpeed(speed)
-	return nil
-}
