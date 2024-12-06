@@ -2,6 +2,8 @@ package power
 
 import (
 	"time"
+
+	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
 
 // PowerSource represents a power supply type
