@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wrale/wrale-fleet-metal-hw/gpio"
+	hw_gpio "github.com/wrale/wrale-fleet-metal-hw/gpio"
 	"periph.io/x/conn/v3/gpio"
 )
 
 // mockPin implements a basic GPIO pin for testing
 type mockPin struct {
 	state bool
+	pull  gpio.Pull
 }
 
 func (m *mockPin) String() string             { return "mock" }
@@ -20,7 +21,10 @@ func (m *mockPin) Name() string               { return "MOCK" }
 func (m *mockPin) Number() int                { return 0 }
 func (m *mockPin) Function() string           { return "In/Out" }
 func (m *mockPin) DefaultPull() gpio.Pull     { return gpio.Float }
-func (m *mockPin) In(pull gpio.Pull, edge gpio.Edge) error { return nil }
+func (m *mockPin) In(pull gpio.Pull, edge gpio.Edge) error {
+	m.pull = pull
+	return nil
+}
 func (m *mockPin) Read() gpio.Level {
 	if m.state {
 		return gpio.High
@@ -31,10 +35,10 @@ func (m *mockPin) Out(l gpio.Level) error {
 	m.state = l == gpio.High
 	return nil
 }
-func (m *mockPin) Pull() gpio.Pull { return gpio.Float }
+func (m *mockPin) Pull() gpio.Pull { return m.pull }
 
 func TestPowerManager(t *testing.T) {
-	gpioCtrl, err := gpio.New()
+	gpioCtrl, err := hw_gpio.New()
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}
