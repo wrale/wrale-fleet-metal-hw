@@ -1,16 +1,16 @@
 # Wrale Fleet Metal Hardware
 
-Hardware management layer for Wrale Fleet. Handles GPIO, power management, physical security, and thermal management for Raspberry Pi devices.
+Pure hardware management layer for Wrale Fleet. Handles direct hardware interactions, raw sensor data, and hardware-level safety for Raspberry Pi devices. Part of the Wrale Fleet Metal project.
 
 ## Scope
 
 ### In Scope
 - Direct hardware interactions and abstractions
-- Hardware state management and monitoring
+- Raw sensor data collection and validation
 - Hardware-level safety controls
 - Physical security monitoring
-- Raw sensor data collection
 - Hardware simulation for testing
+- Basic hardware state management
 
 ### Out of Scope
 - System-level orchestration (fleet-metal-core)
@@ -19,37 +19,98 @@ Hardware management layer for Wrale Fleet. Handles GPIO, power management, physi
 - Network communication
 - Business logic and policy decisions
 - User interfaces and APIs
-- Advanced analytics and diagnostics (fleet-metal-diag)
+- Advanced analytics (fleet-metal-diag)
+- Environmental control logic
 
 ## Hardware Subsystems
 
 ### GPIO Management
-- Pin control and monitoring
-- Interrupt handling
-- PWM support
+- Raw pin control and monitoring
+- Hardware interrupt handling
+- PWM support with frequency control
+- Pull-up/down configuration
 
 ### Power Management
-- Multiple power sources
-- Battery monitoring
-- Voltage monitoring
-- Power state tracking
+- Multiple power source management
+- Battery level monitoring
+- Voltage and current monitoring 
+- Power stability monitoring
+- Load testing capabilities
+- Hardware-level power safety
 
 ### Thermal Management
 - CPU/GPU temperature monitoring
-- Fan control
-- Thermal throttling
+- PWM-based fan speed control
+- Hardware thermal throttling
+- Raw temperature data collection
 
 ### Physical Security
 - Case intrusion detection
-- Motion detection
-- Tamper monitoring
+- Motion sensor monitoring
+- Voltage tamper detection
+- Raw security sensor data
 
-## Hardware Testing
+### Hardware Diagnostics
+- Hardware validation testing
+- Raw sensor verification
+- Hardware simulation support
+- Basic hardware health checks
+- Power load testing
 
-See testing guides for:
-- Hardware simulation setup
-- RPi 3B+ validation
-- RPi 5 deployment
+## Directory Structure
+```
+.
+├── gpio/       # GPIO and PWM control
+├── power/      # Power management
+├── secure/     # Physical security
+├── thermal/    # Temperature control
+└── diag/       # Hardware diagnostics
+```
+
+## Hardware Requirements
+
+### Raspberry Pi Support
+- Full support: RPi 3B+
+- Testing: RPi 5
+- Memory: 512MB minimum
+- Storage: Basic system only
+
+### Power Requirements
+- Input: 5V DC
+- Current: 2A minimum
+- Battery backup support
+- Multiple power source support
+
+### Environmental
+- Operating temp: -10°C to 50°C
+- Humidity: Up to 80% non-condensing
+- Enclosure: IP65 or better recommended
+
+## Integration
+
+This package provides the hardware abstraction layer for the Wrale Fleet Metal system. It should be consumed by fleet-metal-core for system-level management. Direct hardware access should only occur through this package.
+
+## Development
+
+### Prerequisites
+- Go 1.21+
+- Access to RPi hardware or simulation environment
+- Basic electronics knowledge
+
+### Testing
+```bash
+# Run all hardware tests with simulation
+go test ./...
+
+# Test specific hardware subsystem
+go test ./power/...
+```
+
+See [Hardware Testing Guide](docs/HARDWARE_TESTING.md) for physical device testing.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## License
 
