@@ -10,7 +10,7 @@ import (
 
 // Manager handles physical security monitoring and response
 type Manager struct {
-	mux sync.RWMutex
+	mux  sync.RWMutex
 	gpio *gpio.Controller
 
 	// Sensor pin names

@@ -18,12 +18,12 @@ type mockFanPin struct {
 	dutyCycle uint32
 }
 
-func (m *mockFanPin) String() string                   { return "mock_fan" }
-func (m *mockFanPin) Halt() error                      { return nil }
-func (m *mockFanPin) Name() string                     { return "MOCK_FAN" }
-func (m *mockFanPin) Number() int                      { return 0 }
-func (m *mockFanPin) Function() string                 { return "PWM" }
-func (m *mockFanPin) DefaultPull() gpio.Pull           { return gpio.Float }
+func (m *mockFanPin) String() string                               { return "mock_fan" }
+func (m *mockFanPin) Halt() error                                  { return nil }
+func (m *mockFanPin) Name() string                                 { return "MOCK_FAN" }
+func (m *mockFanPin) Number() int                                  { return 0 }
+func (m *mockFanPin) Function() string                             { return "PWM" }
+func (m *mockFanPin) DefaultPull() gpio.Pull                       { return gpio.Float }
 func (m *mockFanPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
 func (m *mockFanPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
@@ -60,12 +60,12 @@ type mockThrottlePin struct {
 	state bool
 }
 
-func (m *mockThrottlePin) String() string             { return "mock_throttle" }
-func (m *mockThrottlePin) Halt() error                { return nil }
-func (m *mockThrottlePin) Name() string               { return "MOCK_THROTTLE" }
-func (m *mockThrottlePin) Number() int                { return 0 }
-func (m *mockThrottlePin) Function() string           { return "In/Out" }
-func (m *mockThrottlePin) DefaultPull() gpio.Pull     { return gpio.Float }
+func (m *mockThrottlePin) String() string         { return "mock_throttle" }
+func (m *mockThrottlePin) Halt() error            { return nil }
+func (m *mockThrottlePin) Name() string           { return "MOCK_THROTTLE" }
+func (m *mockThrottlePin) Number() int            { return 0 }
+func (m *mockThrottlePin) Function() string       { return "In/Out" }
+func (m *mockThrottlePin) DefaultPull() gpio.Pull { return gpio.Float }
 func (m *mockThrottlePin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
 	defer m.Unlock()
@@ -91,7 +91,7 @@ func (m *mockThrottlePin) Pull() gpio.Pull {
 	return gpio.Float
 }
 func (m *mockThrottlePin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
-func (m *mockThrottlePin) WaitForEdge(timeout time.Duration) bool { return true }
+func (m *mockThrottlePin) WaitForEdge(timeout time.Duration) bool       { return true }
 
 func TestCooling(t *testing.T) {
 	gpioCtrl, err := hw_gpio.New(hw_gpio.WithSimulation())
@@ -111,9 +111,9 @@ func TestCooling(t *testing.T) {
 	}
 
 	monitor, err := New(Config{
-		GPIO: gpioCtrl,
-		FanControlPin: "test_fan",
-		ThrottlePin: "test_throttle",
+		GPIO:            gpioCtrl,
+		FanControlPin:   "test_fan",
+		ThrottlePin:     "test_throttle",
 		MonitorInterval: 100 * time.Millisecond,
 	})
 	if err != nil {
@@ -125,7 +125,7 @@ func TestCooling(t *testing.T) {
 		if err := monitor.InitializeFanControl(); err != nil {
 			t.Errorf("Failed to initialize fan control: %v", err)
 		}
-		
+
 		state := monitor.GetState()
 		if state.FanSpeed != fanSpeedLow {
 			t.Errorf("Expected initial fan speed %d, got %d", fanSpeedLow, state.FanSpeed)
@@ -138,8 +138,8 @@ func TestCooling(t *testing.T) {
 		monitor.state.CPUTemp = 35.0
 		monitor.updateCooling()
 		state := monitor.GetState()
-		if want := fanSpeedLow; state.FanSpeed != want {
-			t.Errorf("Expected fan speed %d at low temp, got %d", want, state.FanSpeed)
+		if state.FanSpeed != fanSpeedLow {
+			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, state.FanSpeed)
 		}
 		if state.Throttled {
 			t.Error("Throttling enabled at low temperature")
@@ -149,8 +149,8 @@ func TestCooling(t *testing.T) {
 		monitor.state.CPUTemp = cpuTempCritical
 		monitor.updateCooling()
 		state = monitor.GetState()
-		if want := fanSpeedHigh; state.FanSpeed != want {
-			t.Errorf("Expected fan speed %d at critical temp, got %d", want, state.FanSpeed)
+		if state.FanSpeed != fanSpeedHigh {
+			t.Errorf("Expected fan speed %d at critical temp, got %d", fanSpeedHigh, state.FanSpeed)
 		}
 		if !state.Throttled {
 			t.Error("Throttling not enabled at critical temperature")

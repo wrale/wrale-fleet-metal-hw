@@ -26,9 +26,6 @@ type Manager struct {
 	// Configuration
 	monitorInterval time.Duration
 	onPowerCritical func(PowerState)
-
-	// Internal state
-	shutdownInitiated bool
 }
 
 // New creates a new power manager

@@ -50,10 +50,10 @@ type Config struct {
 	Security *secure.Manager
 
 	// Test parameters
-	GPIOPins     []string       // GPIO pins to test
-	LoadTestTime time.Duration  // Duration for power load tests
-	MinVoltage   float64        // Minimum acceptable voltage
-	TempRange    [2]float64     // Valid temperature range
+	GPIOPins     []string      // GPIO pins to test
+	LoadTestTime time.Duration // Duration for power load tests
+	MinVoltage   float64       // Minimum acceptable voltage
+	TempRange    [2]float64    // Valid temperature range
 	Retries      int           // Number of test retries
 
 	// Optional callbacks
@@ -65,5 +65,5 @@ type RawReadings struct {
 	GPIOStates     map[string]bool // Raw GPIO pin states
 	Voltages       []float64       // Raw voltage measurements
 	Temperatures   []float64       // Raw temperature readings
-	SecurityInputs []bool         // Raw security sensor states
+	SecurityInputs []bool          // Raw security sensor states
 }
