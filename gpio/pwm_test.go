@@ -58,6 +58,7 @@ func TestPWM(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}
+	defer ctrl.Close()
 
 	pin := &mockPWMPin{}
 	pinName := "test_pwm"
@@ -120,9 +121,4 @@ func TestPWM(t *testing.T) {
 			t.Error("Pin still toggling after PWM disabled")
 		}
 	})
-
-	// Test cleanup
-	if err := ctrl.Close(); err != nil {
-		t.Errorf("Failed to close controller: %v", err)
-	}
 }

@@ -34,14 +34,20 @@ func TestPowerManager(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 		defer cancel()
 
+		errCh := make(chan error, 1)
 		go func() {
-			if err := manager.Monitor(ctx); err != nil && err != context.DeadlineExceeded {
-				t.Errorf("Monitor failed: %v", err)
-			}
+			errCh <- manager.Monitor(ctx)
 		}()
 
 		// Give monitor time to run
-		time.Sleep(150 * time.Millisecond)
+		select {
+		case err := <-errCh:
+			if err != nil && err != context.DeadlineExceeded {
+				t.Errorf("Monitor failed: %v", err)
+			}
+		case <-time.After(300 * time.Millisecond):
+			t.Error("Monitor did not complete in time")
+		}
 
 		// Check state is being updated
 		state := manager.GetState()
