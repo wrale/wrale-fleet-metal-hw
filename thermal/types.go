@@ -20,11 +20,6 @@ const (
 
 	// Default monitoring interval
 	defaultMonitorInterval = 1 * time.Second
-
-	// Default fan speed percentages
-	fanSpeedLow    = 25
-	fanSpeedMedium = 50
-	fanSpeedHigh   = 100
 )
 
 // ThermalState represents current thermal conditions

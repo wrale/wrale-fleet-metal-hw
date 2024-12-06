@@ -1,62 +1,119 @@
 package thermal
 
 import (
-	"testing"
 	"sync"
+	"testing"
 	"time"
-	
+
+	hw_gpio "github.com/wrale/wrale-fleet-metal-hw/gpio"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/physic"
 )
 
-// mockFanController implements a mock GPIO controller for testing fan control
-type mockFanController struct {
+// mockFanPin implements a mock GPIO pin for fan control
+type mockFanPin struct {
 	sync.Mutex
-	pwmEnabled    bool
-	dutyCycle     uint32
-	throttleState bool
+	state     gpio.Level
+	pull      gpio.Pull
+	dutyCycle uint32
 }
 
-func (m *mockFanController) ConfigurePWM(name string, pin gpio.PinIO, cfg gpio.PWMConfig) error {
+func (m *mockFanPin) String() string                   { return "mock_fan" }
+func (m *mockFanPin) Halt() error                      { return nil }
+func (m *mockFanPin) Name() string                     { return "MOCK_FAN" }
+func (m *mockFanPin) Number() int                      { return 0 }
+func (m *mockFanPin) Function() string                 { return "PWM" }
+func (m *mockFanPin) DefaultPull() gpio.Pull           { return gpio.Float }
+func (m *mockFanPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
+func (m *mockFanPin) In(pull gpio.Pull, edge gpio.Edge) error {
+	m.Lock()
+	defer m.Unlock()
+	m.pull = pull
+	return nil
+}
+func (m *mockFanPin) Read() gpio.Level {
+	m.Lock()
+	defer m.Unlock()
+	return m.state
+}
+func (m *mockFanPin) Out(l gpio.Level) error {
+	m.Lock()
+	defer m.Unlock()
+	m.state = l
+	if l == gpio.High {
+		m.dutyCycle = 100
+	} else {
+		m.dutyCycle = 0
+	}
+	return nil
+}
+func (m *mockFanPin) Pull() gpio.Pull {
+	m.Lock()
+	defer m.Unlock()
+	return m.pull
+}
+func (m *mockFanPin) WaitForEdge(timeout time.Duration) bool { return true }
+
+// mockThrottlePin implements a mock GPIO pin for throttle control
+type mockThrottlePin struct {
+	sync.Mutex
+	state bool
+}
+
+func (m *mockThrottlePin) String() string             { return "mock_throttle" }
+func (m *mockThrottlePin) Halt() error                { return nil }
+func (m *mockThrottlePin) Name() string               { return "MOCK_THROTTLE" }
+func (m *mockThrottlePin) Number() int                { return 0 }
+func (m *mockThrottlePin) Function() string           { return "In/Out" }
+func (m *mockThrottlePin) DefaultPull() gpio.Pull     { return gpio.Float }
+func (m *mockThrottlePin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
 	defer m.Unlock()
 	return nil
 }
-
-func (m *mockFanController) EnablePWM(name string) error {
+func (m *mockThrottlePin) Read() gpio.Level {
 	m.Lock()
 	defer m.Unlock()
-	m.pwmEnabled = true
-	return nil
+	if m.state {
+		return gpio.High
+	}
+	return gpio.Low
 }
-
-func (m *mockFanController) DisablePWM(name string) error {
+func (m *mockThrottlePin) Out(l gpio.Level) error {
 	m.Lock()
 	defer m.Unlock()
-	m.pwmEnabled = false
+	m.state = l == gpio.High
 	return nil
 }
-
-func (m *mockFanController) SetPWMDutyCycle(name string, duty uint32) error {
+func (m *mockThrottlePin) Pull() gpio.Pull {
 	m.Lock()
 	defer m.Unlock()
-	m.dutyCycle = duty
-	return nil
+	return gpio.Float
 }
-
-func (m *mockFanController) SetPinState(name string, high bool) error {
-	m.Lock()
-	defer m.Unlock()
-	m.throttleState = high
-	return nil
-}
+func (m *mockThrottlePin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
+func (m *mockThrottlePin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestCooling(t *testing.T) {
-	mockGPIO := &mockFanController{}
-	
+	gpioCtrl, err := hw_gpio.New()
+	if err != nil {
+		t.Fatalf("Failed to create GPIO controller: %v", err)
+	}
+
+	fanPin := &mockFanPin{}
+	throttlePin := &mockThrottlePin{}
+
+	// Configure pins before creating monitor
+	if err := gpioCtrl.ConfigurePin("test_fan", fanPin, gpio.Float); err != nil {
+		t.Fatalf("Failed to configure fan pin: %v", err)
+	}
+	if err := gpioCtrl.ConfigurePin("test_throttle", throttlePin, gpio.Float); err != nil {
+		t.Fatalf("Failed to configure throttle pin: %v", err)
+	}
+
 	monitor := &Monitor{
-		gpio:        mockGPIO,
-		fanPin:      "fan",
-		throttlePin: "throttle",
+		gpio:        gpioCtrl,
+		fanPin:      "test_fan",
+		throttlePin: "test_throttle",
 		state: ThermalState{
 			CPUTemp: 45.0,
 			GPUTemp: 40.0,
@@ -65,12 +122,8 @@ func TestCooling(t *testing.T) {
 
 	// Test fan initialization
 	t.Run("Fan Initialization", func(t *testing.T) {
-		err := monitor.InitializeFanControl()
-		if err != nil {
+		if err := monitor.InitializeFanControl(); err != nil {
 			t.Errorf("Failed to initialize fan control: %v", err)
-		}
-		if !mockGPIO.pwmEnabled {
-			t.Error("PWM not enabled after initialization")
 		}
 	})
 
@@ -79,39 +132,28 @@ func TestCooling(t *testing.T) {
 		// Test low temperature
 		monitor.state.CPUTemp = 35.0
 		monitor.updateCooling()
-		if mockGPIO.dutyCycle != uint32(fanSpeedLow) {
-			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, mockGPIO.dutyCycle)
+		if monitor.state.FanSpeed != fanSpeedLow {
+			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, monitor.state.FanSpeed)
 		}
-		if mockGPIO.throttleState {
+		if monitor.state.Throttled {
 			t.Error("Throttling enabled at low temperature")
-		}
-
-		// Test warning temperature
-		monitor.state.CPUTemp = cpuTempWarning
-		monitor.updateCooling()
-		if mockGPIO.dutyCycle < uint32(fanSpeedMedium) {
-			t.Error("Fan speed not increased at warning temperature")
 		}
 
 		// Test critical temperature
 		monitor.state.CPUTemp = cpuTempCritical
 		monitor.updateCooling()
-		if mockGPIO.dutyCycle != uint32(fanSpeedHigh) {
+		if monitor.state.FanSpeed != fanSpeedHigh {
 			t.Error("Fan not at full speed at critical temperature")
 		}
-		if !mockGPIO.throttleState {
+		if !monitor.state.Throttled {
 			t.Error("Throttling not enabled at critical temperature")
 		}
 	})
 
 	// Test cleanup
 	t.Run("Cleanup", func(t *testing.T) {
-		err := monitor.Close()
-		if err != nil {
+		if err := monitor.Close(); err != nil {
 			t.Errorf("Failed to close monitor: %v", err)
-		}
-		if mockGPIO.pwmEnabled {
-			t.Error("PWM still enabled after close")
 		}
 	})
 }

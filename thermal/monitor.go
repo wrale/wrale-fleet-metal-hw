@@ -56,15 +56,9 @@ func New(cfg Config) (*Monitor, error) {
 		onCritical:     cfg.OnCritical,
 	}
 
-	// Configure GPIO pins
 	if m.fanPin != "" {
-		if err := m.gpio.ConfigurePin(m.fanPin, nil); err != nil {
-			return nil, fmt.Errorf("failed to configure fan pin: %w", err)
-		}
-	}
-	if m.throttlePin != "" {
-		if err := m.gpio.ConfigurePin(m.throttlePin, nil); err != nil {
-			return nil, fmt.Errorf("failed to configure throttle pin: %w", err)
+		if err := m.InitializeFanControl(); err != nil {
+			return nil, fmt.Errorf("failed to initialize fan: %w", err)
 		}
 	}
 
@@ -93,4 +87,16 @@ func (m *Monitor) Monitor(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// SetFanSpeed sets fan speed percentage (0-100)
+func (m *Monitor) SetFanSpeed(speed int) error {
+	if speed < fanSpeedLow {
+		speed = fanSpeedLow
+	}
+	if speed > fanSpeedHigh {
+		speed = fanSpeedHigh
+	}
+	m.setFanSpeed(speed)
+	return nil
 }

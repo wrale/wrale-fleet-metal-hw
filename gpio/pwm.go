@@ -6,18 +6,7 @@ import (
 	"time"
 
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/physic"
 )
-
-// PWMConfig holds PWM pin configuration
-type PWMConfig struct {
-	// PWM frequency in Hz
-	Frequency uint32
-	// Initial duty cycle (0-100)
-	DutyCycle uint32
-	// Pull up/down configuration
-	Pull gpio.Pull
-}
 
 // pwmState tracks PWM pin state
 type pwmState struct {
@@ -26,6 +15,8 @@ type pwmState struct {
 	enabled   bool
 	dutyCycle uint32
 	mux       sync.Mutex
+	done      chan struct{}
+	wg        sync.WaitGroup
 }
 
 // ConfigurePWM sets up a pin for PWM operation
@@ -59,9 +50,27 @@ func (c *Controller) ConfigurePWM(name string, pin gpio.PinIO, cfg PWMConfig) er
 		config:    cfg,
 		enabled:   false,
 		dutyCycle: cfg.DutyCycle,
+		done:      make(chan struct{}),
 	}
 
 	return nil
+}
+
+// updatePWM updates the PWM output for a pin
+func (c *Controller) updatePWM(state *pwmState) error {
+	if !state.enabled {
+		return nil
+	}
+	
+	// Update duty cycle immediately
+	if state.dutyCycle == 0 {
+		return state.pin.Out(gpio.Low)
+	}
+	if state.dutyCycle == 100 {
+		return state.pin.Out(gpio.High)
+	}
+
+	return nil // PWM loop will handle intermediate values
 }
 
 // SetPWMDutyCycle updates the PWM duty cycle (0-100)
@@ -109,7 +118,9 @@ func (c *Controller) EnablePWM(name string) error {
 	}
 
 	state.enabled = true
-	go c.pwmLoop(state) // Start PWM loop
+	state.done = make(chan struct{})
+	state.wg.Add(1)
+	go c.pwmLoop(state)
 
 	return nil
 }
@@ -125,16 +136,20 @@ func (c *Controller) DisablePWM(name string) error {
 	}
 
 	state.mux.Lock()
-	defer state.mux.Unlock()
-
 	if !state.enabled {
+		state.mux.Unlock()
 		return nil // Already disabled
 	}
 
 	state.enabled = false
-	state.pin.Out(gpio.Low) // Set pin low
+	close(state.done)
+	state.mux.Unlock()
 
-	return nil
+	// Wait for PWM loop to exit
+	state.wg.Wait()
+	
+	// Set pin low after goroutine exits
+	return state.pin.Out(gpio.Low)
 }
 
 // GetPWMState returns the current PWM configuration
@@ -155,35 +170,44 @@ func (c *Controller) GetPWMState(name string) (PWMConfig, error) {
 
 // pwmLoop handles the PWM signal generation
 func (c *Controller) pwmLoop(state *pwmState) {
+	defer state.wg.Done()
 	period := time.Duration(1000000000/state.config.Frequency) * time.Nanosecond
 	
+	timer := time.NewTimer(period)
+	defer timer.Stop()
+
 	for {
-		state.mux.Lock()
-		if !state.enabled {
-			state.mux.Unlock()
+		select {
+		case <-state.done:
 			return
-		}
-		
-		dutyCycle := state.dutyCycle
-		state.mux.Unlock()
+		case <-timer.C:
+			state.mux.Lock()
+			if !state.enabled {
+				state.mux.Unlock()
+				return
+			}
+			
+			dutyCycle := state.dutyCycle
+			state.mux.Unlock()
 
-		if dutyCycle == 0 {
-			state.pin.Out(gpio.Low)
-			time.Sleep(period)
-			continue
-		}
-		if dutyCycle == 100 {
+			if dutyCycle == 0 {
+				state.pin.Out(gpio.Low)
+				timer.Reset(period)
+				continue
+			}
+			if dutyCycle == 100 {
+				state.pin.Out(gpio.High)
+				timer.Reset(period)
+				continue
+			}
+
+			onTime := period * time.Duration(dutyCycle) / 100
+			offTime := period - onTime
+
 			state.pin.Out(gpio.High)
-			time.Sleep(period)
-			continue
+			time.Sleep(onTime)
+			state.pin.Out(gpio.Low)
+			timer.Reset(offTime)
 		}
-
-		onTime := period * time.Duration(dutyCycle) / 100
-		offTime := period - onTime
-
-		state.pin.Out(gpio.High)
-		time.Sleep(onTime)
-		state.pin.Out(gpio.Low)
-		time.Sleep(offTime)
 	}
 }

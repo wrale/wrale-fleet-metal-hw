@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
