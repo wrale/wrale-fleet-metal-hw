@@ -90,6 +90,7 @@ func (m *Monitor) setFanSpeed(speed int) {
 	}
 
 	m.gpio.SetPWMDutyCycle(m.fanPin, uint32(speed))
+	m.state.FanSpeed = speed
 }
 
 // setThrottling controls the throttling GPIO pin
@@ -106,7 +107,7 @@ func (m *Monitor) setThrottling(enabled bool) {
 func (m *Monitor) Close() error {
 	if m.fanPin != "" {
 		if err := m.gpio.DisablePWM(m.fanPin); err != nil {
-			return err
+			return fmt.Errorf("failed to disable fan PWM: %w", err)
 		}
 	}
 	return nil

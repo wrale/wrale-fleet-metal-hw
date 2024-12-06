@@ -97,5 +97,6 @@ func (m *Monitor) SetFanSpeed(speed int) error {
 	if speed > fanSpeedHigh {
 		speed = fanSpeedHigh
 	}
-	return m.setFanSpeed(speed)
+	m.setFanSpeed(speed)
+	return nil
 }
