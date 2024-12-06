@@ -12,10 +12,10 @@ import (
 
 // mockInterruptPin mocks a pin with interrupt capabilities
 type mockInterruptPin struct {
-	sync.RWMutex  // embedded mutex
-	state bool
-	edge  gpio.Edge
-	pullState gpio.Pull
+	sync.RWMutex // embedded mutex
+	state        bool
+	edge         gpio.Edge
+	pullState    gpio.Pull
 }
 
 func (m *mockInterruptPin) In(pull gpio.Pull, edge gpio.Edge) error {
@@ -43,15 +43,15 @@ func (m *mockInterruptPin) Read() gpio.Level {
 }
 
 // Implement required PinIO methods
-func (m *mockInterruptPin) String() string { return "mock_pin" }
-func (m *mockInterruptPin) Name() string   { return "MOCK_PIN" }
-func (m *mockInterruptPin) Number() int    { return 0 }
-func (m *mockInterruptPin) Function() string { return "In/Out" }
-func (m *mockInterruptPin) Halt() error    { return nil }
-func (m *mockInterruptPin) DefaultPull() gpio.Pull { return gpio.Float }
+func (m *mockInterruptPin) String() string                               { return "mock_pin" }
+func (m *mockInterruptPin) Name() string                                 { return "MOCK_PIN" }
+func (m *mockInterruptPin) Number() int                                  { return 0 }
+func (m *mockInterruptPin) Function() string                             { return "In/Out" }
+func (m *mockInterruptPin) Halt() error                                  { return nil }
+func (m *mockInterruptPin) DefaultPull() gpio.Pull                       { return gpio.Float }
 func (m *mockInterruptPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
-func (m *mockInterruptPin) Pull() gpio.Pull { return m.pullState }
-func (m *mockInterruptPin) WaitForEdge(timeout time.Duration) bool { return true }
+func (m *mockInterruptPin) Pull() gpio.Pull                              { return m.pullState }
+func (m *mockInterruptPin) WaitForEdge(timeout time.Duration) bool       { return true }
 
 func TestInterrupts(t *testing.T) {
 	// Create controller in simulation mode

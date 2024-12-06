@@ -23,7 +23,7 @@ type Controller struct {
 	pwmPins    map[string]*pwmState
 	enabled    bool
 	simulation bool
-	
+
 	// Simulated state
 	simPins map[string]*simPin
 }
@@ -257,7 +257,7 @@ func (c *Controller) EnablePWM(name string) error {
 
 	state.enabled = true
 	state.done = make(chan struct{})
-	
+
 	if !c.simulation {
 		state.wg.Add(1)
 		go c.pwmLoop(state)
@@ -289,7 +289,7 @@ func (c *Controller) DisablePWM(name string) error {
 	if !c.simulation {
 		// Wait for PWM loop to exit
 		state.wg.Wait()
-		
+
 		if state.pin != nil {
 			// Set pin low after goroutine exits
 			return state.pin.Out(gpio.Low)
@@ -337,7 +337,7 @@ func (c *Controller) SetPWMDutyCycle(name string, dutyCycle uint32) error {
 func (c *Controller) pwmLoop(state *pwmState) {
 	defer state.wg.Done()
 	period := time.Duration(1000000000/state.config.Frequency) * time.Nanosecond
-	
+
 	timer := time.NewTimer(period)
 	defer timer.Stop()
 
@@ -351,7 +351,7 @@ func (c *Controller) pwmLoop(state *pwmState) {
 				state.mux.Unlock()
 				return
 			}
-			
+
 			dutyCycle := state.dutyCycle
 			pin := state.pin
 			state.mux.Unlock()

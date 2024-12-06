@@ -18,12 +18,12 @@ type mockPin struct {
 	pull  gpio.Pull
 }
 
-func (m *mockPin) String() string             { return "mock" }
-func (m *mockPin) Halt() error                { return nil }
-func (m *mockPin) Name() string               { return "MOCK" }
-func (m *mockPin) Number() int                { return 0 }
-func (m *mockPin) Function() string           { return "In/Out" }
-func (m *mockPin) DefaultPull() gpio.Pull     { return gpio.Float }
+func (m *mockPin) String() string         { return "mock" }
+func (m *mockPin) Halt() error            { return nil }
+func (m *mockPin) Name() string           { return "MOCK" }
+func (m *mockPin) Number() int            { return 0 }
+func (m *mockPin) Function() string       { return "In/Out" }
+func (m *mockPin) DefaultPull() gpio.Pull { return gpio.Float }
 func (m *mockPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
 	defer m.Unlock()
@@ -44,9 +44,9 @@ func (m *mockPin) Out(l gpio.Level) error {
 	m.state = l == gpio.High
 	return nil
 }
-func (m *mockPin) Pull() gpio.Pull { return m.pull }
+func (m *mockPin) Pull() gpio.Pull                              { return m.pull }
 func (m *mockPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
-func (m *mockPin) WaitForEdge(timeout time.Duration) bool { return true }
+func (m *mockPin) WaitForEdge(timeout time.Duration) bool       { return true }
 
 func TestPowerManager(t *testing.T) {
 	gpioCtrl, err := hw_gpio.New(hw_gpio.WithSimulation())
@@ -65,7 +65,7 @@ func TestPowerManager(t *testing.T) {
 	}
 
 	manager, err := New(Config{
-		GPIO:     gpioCtrl,
+		GPIO: gpioCtrl,
 		PowerPins: map[PowerSource]string{
 			MainPower:    "main_power",
 			BatteryPower: "battery_power",

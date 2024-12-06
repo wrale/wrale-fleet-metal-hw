@@ -14,7 +14,7 @@ const (
 	fanSpeedHigh   = 100
 
 	// PWM configuration
-	fanPWMFrequency = 25000  // 25kHz standard for PC fans
+	fanPWMFrequency = 25000 // 25kHz standard for PC fans
 )
 
 // updateCooling adjusts cooling based on temperatures
@@ -41,10 +41,10 @@ func (m *Monitor) updateCooling() {
 		speedRange := fanSpeedHigh - fanSpeedMedium
 		fanSpeed = fanSpeedMedium + int(float64(speedRange)*(tempAboveWarning/tempRange))
 		m.setThrottlingLocked(false)
-	case maxTemp >= (cpuTempWarning/2):
+	case maxTemp >= (cpuTempWarning / 2):
 		// Linear interpolation between low and medium speed
-		tempRange := cpuTempWarning - (cpuTempWarning/2)
-		tempAboveMin := maxTemp - (cpuTempWarning/2)
+		tempRange := cpuTempWarning - (cpuTempWarning / 2)
+		tempAboveMin := maxTemp - (cpuTempWarning / 2)
 		speedRange := fanSpeedMedium - fanSpeedLow
 		fanSpeed = fanSpeedLow + int(float64(speedRange)*(tempAboveMin/tempRange))
 		m.setThrottlingLocked(false)
@@ -66,7 +66,7 @@ func (m *Monitor) InitializeFanControl() error {
 	}
 
 	err := m.gpio.ConfigurePWM(m.fanPin, nil, gpio.PWMConfig{
-		Frequency:  fanPWMFrequency,
+		Frequency: fanPWMFrequency,
 		DutyCycle: uint32(fanSpeedLow),
 	})
 	if err != nil {

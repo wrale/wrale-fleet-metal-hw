@@ -19,8 +19,8 @@ type mockHardware struct {
 		cpu float64
 		gpu float64
 	}
-	fanSpeed  int
-	caseOpen  bool
+	fanSpeed int
+	caseOpen bool
 }
 
 func NewMockGPIO() (*gpio.Controller, error) {
@@ -71,7 +71,7 @@ func TestDiagnostics(t *testing.T) {
 		}
 	})
 
-	// Test thermal diagnostics  
+	// Test thermal diagnostics
 	t.Run("Thermal Tests", func(t *testing.T) {
 		if err := mgr.TestThermal(context.Background()); err != nil {
 			// Expect this to fail since we're in simulation mode

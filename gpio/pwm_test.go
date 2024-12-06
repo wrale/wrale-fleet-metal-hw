@@ -18,12 +18,12 @@ type mockPWMPin struct {
 	lowCount  int
 }
 
-func (m *mockPWMPin) String() string                   { return "mock_pwm" }
-func (m *mockPWMPin) Halt() error                      { return nil }
-func (m *mockPWMPin) Name() string                     { return "MOCK_PWM" }
-func (m *mockPWMPin) Number() int                      { return 0 }
-func (m *mockPWMPin) Function() string                 { return "PWM" }
-func (m *mockPWMPin) DefaultPull() gpio.Pull           { return gpio.Float }
+func (m *mockPWMPin) String() string                               { return "mock_pwm" }
+func (m *mockPWMPin) Halt() error                                  { return nil }
+func (m *mockPWMPin) Name() string                                 { return "MOCK_PWM" }
+func (m *mockPWMPin) Number() int                                  { return 0 }
+func (m *mockPWMPin) Function() string                             { return "PWM" }
+func (m *mockPWMPin) DefaultPull() gpio.Pull                       { return gpio.Float }
 func (m *mockPWMPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
 func (m *mockPWMPin) Pull() gpio.Pull {
 	m.Lock()
@@ -80,7 +80,7 @@ func TestPWM(t *testing.T) {
 
 	// Configure PWM with pull
 	cfg := PWMConfig{
-		Frequency:  1000,
+		Frequency: 1000,
 		DutyCycle: 50,
 		Pull:      gpio.Float,
 	}

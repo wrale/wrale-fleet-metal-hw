@@ -48,10 +48,10 @@ func (m *Manager) checkSecurity(ctx context.Context) error {
 
 	// Update state
 	newState := TamperState{
-		CaseOpen:      caseOpen,
+		CaseOpen:       caseOpen,
 		MotionDetected: motion,
-		VoltageNormal: voltageOK,
-		LastCheck:     time.Now(),
+		VoltageNormal:  voltageOK,
+		LastCheck:      time.Now(),
 	}
 
 	// Check for tamper conditions
@@ -59,7 +59,7 @@ func (m *Manager) checkSecurity(ctx context.Context) error {
 		if m.onTamper != nil {
 			m.onTamper(newState)
 		}
-		
+
 		// Log tamper event if store is available
 		if m.stateStore != nil {
 			eventDetails := map[string]interface{}{

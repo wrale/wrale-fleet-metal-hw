@@ -9,7 +9,7 @@ import (
 
 // TamperState represents the current tamper detection status
 type TamperState struct {
-	CaseOpen      bool
+	CaseOpen       bool
 	MotionDetected bool
 	VoltageNormal  bool
 	LastCheck      time.Time

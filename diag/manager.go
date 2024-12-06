@@ -9,9 +9,9 @@ import (
 
 // Manager handles hardware diagnostics and testing
 type Manager struct {
-	mux  sync.RWMutex
-	cfg  Config
-	
+	mux sync.RWMutex
+	cfg Config
+
 	// Test history
 	results []TestResult
 }
@@ -133,7 +133,7 @@ func (m *Manager) TestThermal(ctx context.Context) error {
 			Description: "CPU temperature out of range",
 			Timestamp:   time.Now(),
 		})
-		return fmt.Errorf("CPU temp %v outside range %v-%v", state.CPUTemp, 
+		return fmt.Errorf("CPU temp %v outside range %v-%v", state.CPUTemp,
 			m.cfg.TempRange[0], m.cfg.TempRange[1])
 	}
 
@@ -244,7 +244,7 @@ func (m *Manager) RunAll(ctx context.Context) error {
 				break
 			}
 			if retry == m.cfg.Retries-1 {
-				return fmt.Errorf("%s tests failed after %d retries: %w", 
+				return fmt.Errorf("%s tests failed after %d retries: %w",
 					test.name, m.cfg.Retries, err)
 			}
 			time.Sleep(time.Second) // Wait between retries
@@ -258,7 +258,7 @@ func (m *Manager) RunAll(ctx context.Context) error {
 func (m *Manager) GetResults() []TestResult {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
-	
+
 	results := make([]TestResult, len(m.results))
 	copy(results, m.results)
 	return results
