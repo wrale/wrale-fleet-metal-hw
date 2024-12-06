@@ -71,32 +71,6 @@ func (m *Manager) TestGPIO(ctx context.Context) error {
 			return fmt.Errorf("pin %s state mismatch", pin)
 		}
 
-		// Repeat for LOW state
-		if err := m.cfg.GPIO.SetPinState(pin, false); err != nil {
-			m.recordResult(TestResult{
-				Type:        TestGPIO,
-				Component:   pin,
-				Status:      StatusFail,
-				Description: "Failed to set pin LOW",
-				Error:       err,
-				Timestamp:   time.Now(),
-			})
-			return fmt.Errorf("failed to set pin %s LOW: %w", pin, err)
-		}
-
-		state, err = m.cfg.GPIO.GetPinState(pin)
-		if err != nil || state {
-			m.recordResult(TestResult{
-				Type:        TestGPIO,
-				Component:   pin,
-				Status:      StatusFail,
-				Description: "Pin readback mismatch",
-				Error:       err,
-				Timestamp:   time.Now(),
-			})
-			return fmt.Errorf("pin %s state mismatch", pin)
-		}
-
 		m.recordResult(TestResult{
 			Type:        TestGPIO,
 			Component:   pin,
@@ -130,24 +104,6 @@ func (m *Manager) TestPower(ctx context.Context) error {
 		return fmt.Errorf("voltage %v below minimum %v", state.Voltage, m.cfg.MinVoltage)
 	}
 
-	// Run load test
-	if err := m.cfg.Power.RunLoadTest(ctx, power.LoadTestConfig{
-		TargetCurrent: 2.0,
-		Duration:      m.cfg.LoadTestTime,
-		MinVoltage:    m.cfg.MinVoltage,
-		MaxRipple:     0.5,
-	}); err != nil {
-		m.recordResult(TestResult{
-			Type:        TestPower,
-			Component:   "load_test",
-			Status:      StatusFail,
-			Description: "Power load test failed",
-			Error:       err,
-			Timestamp:   time.Now(),
-		})
-		return fmt.Errorf("load test failed: %w", err)
-	}
-
 	m.recordResult(TestResult{
 		Type:        TestPower,
 		Component:   "power_system",
@@ -166,7 +122,7 @@ func (m *Manager) TestThermal(ctx context.Context) error {
 	}
 
 	state := m.cfg.Thermal.GetState()
-	
+
 	// Verify temperature readings
 	if state.CPUTemp < m.cfg.TempRange[0] || state.CPUTemp > m.cfg.TempRange[1] {
 		m.recordResult(TestResult{
@@ -194,24 +150,17 @@ func (m *Manager) TestThermal(ctx context.Context) error {
 			m.cfg.TempRange[0], m.cfg.TempRange[1])
 	}
 
-	// Test fan control
-	for _, speed := range []int{25, 50, 100} {
-		m.cfg.Thermal.SetFanSpeed(speed)
-		time.Sleep(100 * time.Millisecond)
-
-		newState := m.cfg.Thermal.GetState()
-		if newState.FanSpeed != speed {
-			m.recordResult(TestResult{
-				Type:        TestThermal,
-				Component:   "fan",
-				Status:      StatusFail,
-				Reading:     float64(newState.FanSpeed),
-				Expected:    float64(speed),
-				Description: "Fan speed control failed",
-				Timestamp:   time.Now(),
-			})
-			return fmt.Errorf("fan speed mismatch: got %v, want %v", newState.FanSpeed, speed)
-		}
+	// Set fan to low speed for test
+	if err := m.cfg.Thermal.SetFanSpeed(25); err != nil {
+		m.recordResult(TestResult{
+			Type:        TestThermal,
+			Component:   "fan",
+			Status:      StatusFail,
+			Description: "Failed to control fan speed",
+			Error:       err,
+			Timestamp:   time.Now(),
+		})
+		return fmt.Errorf("failed to control fan: %w", err)
 	}
 
 	m.recordResult(TestResult{

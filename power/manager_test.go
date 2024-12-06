@@ -2,7 +2,6 @@ package power
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
