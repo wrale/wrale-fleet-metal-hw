@@ -17,4 +17,7 @@ type PWMConfig struct {
 
 	// Initial duty cycle (0-100)
 	DutyCycle uint32
+
+	// Pull up/down configuration
+	Pull gpio.Pull
 }
