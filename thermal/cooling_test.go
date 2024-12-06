@@ -138,8 +138,8 @@ func TestCooling(t *testing.T) {
 		monitor.state.CPUTemp = 35.0
 		monitor.updateCooling()
 		state := monitor.GetState()
-		if want := fanSpeedLow; state.FanSpeed != want {
-			t.Errorf("Expected fan speed %d at low temp, got %d", want, state.FanSpeed)
+		if state.FanSpeed != fanSpeedLow {
+			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, state.FanSpeed)
 		}
 		if state.Throttled {
 			t.Error("Throttling enabled at low temperature")
@@ -149,8 +149,8 @@ func TestCooling(t *testing.T) {
 		monitor.state.CPUTemp = cpuTempCritical
 		monitor.updateCooling()
 		state = monitor.GetState()
-		if want := fanSpeedHigh; state.FanSpeed != want {
-			t.Errorf("Expected fan speed %d at critical temp, got %d", want, state.FanSpeed)
+		if state.FanSpeed != fanSpeedHigh {
+			t.Errorf("Expected fan speed %d at critical temp, got %d", fanSpeedHigh, state.FanSpeed)
 		}
 		if !state.Throttled {
 			t.Error("Throttling not enabled at critical temperature")

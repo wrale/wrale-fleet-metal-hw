@@ -292,7 +292,9 @@ func (c *Controller) DisablePWM(name string) error {
 
 		if state.pin != nil {
 			// Set pin low after goroutine exits
-			return state.pin.Out(gpio.Low)
+			if err := state.pin.Out(gpio.Low); err != nil {
+				return fmt.Errorf("failed to set pin low: %w", err)
+			}
 		}
 	}
 
@@ -322,10 +324,14 @@ func (c *Controller) SetPWMDutyCycle(name string, dutyCycle uint32) error {
 	if state.enabled && !c.simulation {
 		if state.pin != nil {
 			if dutyCycle == 0 {
-				return state.pin.Out(gpio.Low)
+				if err := state.pin.Out(gpio.Low); err != nil {
+					return fmt.Errorf("failed to set pin low: %w", err)
+				}
 			}
 			if dutyCycle == 100 {
-				return state.pin.Out(gpio.High)
+				if err := state.pin.Out(gpio.High); err != nil {
+					return fmt.Errorf("failed to set pin high: %w", err)
+				}
 			}
 		}
 	}
@@ -361,12 +367,18 @@ func (c *Controller) pwmLoop(state *pwmState) {
 			}
 
 			if dutyCycle == 0 {
-				pin.Out(gpio.Low)
+				if err := pin.Out(gpio.Low); err != nil {
+					// Log error but continue - PWM is best-effort
+					continue
+				}
 				timer.Reset(period)
 				continue
 			}
 			if dutyCycle == 100 {
-				pin.Out(gpio.High)
+				if err := pin.Out(gpio.High); err != nil {
+					// Log error but continue - PWM is best-effort
+					continue
+				}
 				timer.Reset(period)
 				continue
 			}
@@ -374,9 +386,15 @@ func (c *Controller) pwmLoop(state *pwmState) {
 			onTime := period * time.Duration(dutyCycle) / 100
 			offTime := period - onTime
 
-			pin.Out(gpio.High)
+			if err := pin.Out(gpio.High); err != nil {
+				// Log error but continue - PWM is best-effort
+				continue
+			}
 			time.Sleep(onTime)
-			pin.Out(gpio.Low)
+			if err := pin.Out(gpio.Low); err != nil {
+				// Log error but continue - PWM is best-effort
+				continue
+			}
 			timer.Reset(offTime)
 		}
 	}
@@ -387,20 +405,26 @@ func (c *Controller) Close() error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
+	var lastErr error
+
 	if !c.simulation {
 		// Disable all PWM outputs
 		for name := range c.pwmPins {
-			c.DisablePWM(name)
+			if err := c.DisablePWM(name); err != nil {
+				lastErr = err
+			}
 		}
 
 		// Set all pins to safe state
 		for _, pin := range c.pins {
 			if pin != nil {
-				pin.Out(gpio.Low)
+				if err := pin.Out(gpio.Low); err != nil {
+					lastErr = err
+				}
 			}
 		}
 	}
 
 	c.enabled = false
-	return nil
+	return lastErr
 }

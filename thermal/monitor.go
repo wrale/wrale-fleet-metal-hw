@@ -28,9 +28,6 @@ type Monitor struct {
 	monitorInterval time.Duration
 	onWarning       func(ThermalState)
 	onCritical      func(ThermalState)
-
-	// Internal state
-	shutdownInitiated bool
 }
 
 // New creates a new thermal monitor
@@ -90,10 +87,12 @@ func (m *Monitor) Monitor(ctx context.Context) error {
 }
 
 // SetFanSpeed sets the fan speed to a specific percentage
-func (m *Monitor) SetFanSpeed(speed int) error {
+func (m *Monitor) SetFanSpeed(speed uint32) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
-	m.setFanSpeedLocked(speed)
+	if err := m.setFanSpeedLocked(speed); err != nil {
+		return fmt.Errorf("failed to set fan speed: %w", err)
+	}
 	return nil
 }

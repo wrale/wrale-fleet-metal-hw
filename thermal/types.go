@@ -27,10 +27,15 @@ type ThermalState struct {
 	CPUTemp     float64   // CPU temperature in Celsius
 	GPUTemp     float64   // GPU temperature in Celsius
 	AmbientTemp float64   // Ambient temperature in Celsius
-	FanSpeed    int       // Current fan speed percentage
+	FanSpeed    uint32    // Current fan speed percentage
 	Throttled   bool      // Whether system is throttled
 	Warnings    []string  // Active thermal warnings
 	UpdatedAt   time.Time // Last update timestamp
+}
+
+// addWarning adds a warning message to the thermal state
+func (s *ThermalState) addWarning(warning string) {
+	s.Warnings = append(s.Warnings, warning)
 }
 
 // Config holds thermal monitor configuration

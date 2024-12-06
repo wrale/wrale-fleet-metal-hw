@@ -17,12 +17,6 @@ const (
 	// Default monitoring interval
 	defaultMonitorInterval   = 1 * time.Second
 	defaultStabilityInterval = 100 * time.Millisecond
-
-	// Critical power thresholds
-	criticalBatteryLevel = 10.0 // 10% battery remaining
-	criticalVoltage      = 4.8  // 4.8V (assuming 5V system)
-	criticalRipple       = 0.5  // 0.5V peak-to-peak ripple
-	criticalCurrent      = 2.0  // 2.0A maximum current draw
 )
 
 // PowerState represents the current power status

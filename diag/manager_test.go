@@ -2,26 +2,12 @@ package diag
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
-
-// mockHardware implements all required test interfaces
-type mockHardware struct {
-	sync.RWMutex
-	pinStates map[string]bool
-	voltage   float64
-	temps     struct {
-		cpu float64
-		gpu float64
-	}
-	fanSpeed int
-	caseOpen bool
-}
 
 func NewMockGPIO() (*gpio.Controller, error) {
 	return gpio.New(gpio.WithSimulation())
@@ -100,7 +86,7 @@ func TestDiagnostics(t *testing.T) {
 		resultsMux.Unlock()
 
 		if finalResults > 0 {
-			t.Log(fmt.Sprintf("Recorded %d test results", finalResults))
+			t.Logf("Recorded %d test results", finalResults)
 		}
 	})
 }

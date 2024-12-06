@@ -3,6 +3,7 @@ package thermal
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -94,15 +95,26 @@ func (m *Monitor) updateThermalState() error {
 
 // readTemp reads a temperature value from sysfs
 func (m *Monitor) readTemp(path string) (float64, error) {
+	// Validate path is absolute
+	if !filepath.IsAbs(path) {
+		return 0, fmt.Errorf("temperature path must be absolute")
+	}
+
+	// Validate path is in sys/class/thermal
+	path = filepath.Clean(path)
+	if !strings.HasPrefix(path, "/sys/class/thermal/thermal_zone") || !strings.HasSuffix(path, "/temp") {
+		return 0, fmt.Errorf("invalid temperature sensor path: must be in /sys/class/thermal/thermal_zoneX/temp")
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to read temperature file: %w", err)
 	}
 
 	// Convert raw value (usually in millicelsius)
 	raw, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to parse temperature value: %w", err)
 	}
 
 	// Convert to Celsius

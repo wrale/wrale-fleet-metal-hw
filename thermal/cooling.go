@@ -8,10 +8,10 @@ import (
 
 // Fan speed ranges and PWM settings
 const (
-	// Fan speed percentages
-	fanSpeedLow    = 25
-	fanSpeedMedium = 50
-	fanSpeedHigh   = 100
+	// Fan speed percentages as uint32 to avoid conversion
+	fanSpeedLow    uint32 = 25
+	fanSpeedMedium uint32 = 50
+	fanSpeedHigh   uint32 = 100
 
 	// PWM configuration
 	fanPWMFrequency = 25000 // 25kHz standard for PC fans
@@ -29,33 +29,49 @@ func (m *Monitor) updateCooling() {
 	}
 
 	// Calculate fan speed based on temperature ranges
-	var fanSpeed int
+	var dutyCycle uint32
 	switch {
 	case maxTemp >= cpuTempCritical:
-		fanSpeed = fanSpeedHigh
+		dutyCycle = fanSpeedHigh
 		m.setThrottlingLocked(true)
 	case maxTemp >= cpuTempWarning:
 		// Linear interpolation between medium and high speed
 		tempRange := cpuTempCritical - cpuTempWarning
 		tempAboveWarning := maxTemp - cpuTempWarning
-		speedRange := fanSpeedHigh - fanSpeedMedium
-		fanSpeed = fanSpeedMedium + int(float64(speedRange)*(tempAboveWarning/tempRange))
+		speedRange := float64(fanSpeedHigh - fanSpeedMedium)
+		interpolated := float64(fanSpeedMedium) + speedRange*(tempAboveWarning/tempRange)
+		if interpolated < float64(fanSpeedMedium) {
+			dutyCycle = fanSpeedMedium
+		} else if interpolated > float64(fanSpeedHigh) {
+			dutyCycle = fanSpeedHigh
+		} else {
+			dutyCycle = fanSpeedMedium + uint32(speedRange*(tempAboveWarning/tempRange))
+		}
 		m.setThrottlingLocked(false)
 	case maxTemp >= (cpuTempWarning / 2):
 		// Linear interpolation between low and medium speed
 		tempRange := cpuTempWarning - (cpuTempWarning / 2)
 		tempAboveMin := maxTemp - (cpuTempWarning / 2)
-		speedRange := fanSpeedMedium - fanSpeedLow
-		fanSpeed = fanSpeedLow + int(float64(speedRange)*(tempAboveMin/tempRange))
+		speedRange := float64(fanSpeedMedium - fanSpeedLow)
+		interpolated := float64(fanSpeedLow) + speedRange*(tempAboveMin/tempRange)
+		if interpolated < float64(fanSpeedLow) {
+			dutyCycle = fanSpeedLow
+		} else if interpolated > float64(fanSpeedMedium) {
+			dutyCycle = fanSpeedMedium
+		} else {
+			dutyCycle = fanSpeedLow + uint32(speedRange*(tempAboveMin/tempRange))
+		}
 		m.setThrottlingLocked(false)
 	default:
-		fanSpeed = fanSpeedLow
+		dutyCycle = fanSpeedLow
 		m.setThrottlingLocked(false)
 	}
 
 	// Update fan speed if changed
-	if fanSpeed != m.state.FanSpeed {
-		m.setFanSpeedLocked(fanSpeed)
+	if dutyCycle != m.state.FanSpeed {
+		if err := m.setFanSpeedLocked(dutyCycle); err != nil {
+			m.state.addWarning(fmt.Sprintf("Failed to update fan speed: %v", err))
+		}
 	}
 }
 
@@ -67,7 +83,7 @@ func (m *Monitor) InitializeFanControl() error {
 
 	err := m.gpio.ConfigurePWM(m.fanPin, nil, gpio.PWMConfig{
 		Frequency: fanPWMFrequency,
-		DutyCycle: uint32(fanSpeedLow),
+		DutyCycle: fanSpeedLow,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to configure fan PWM: %w", err)
@@ -86,21 +102,24 @@ func (m *Monitor) InitializeFanControl() error {
 }
 
 // setFanSpeedLocked controls fan speed using PWM - must be called with lock held
-func (m *Monitor) setFanSpeedLocked(speed int) {
+func (m *Monitor) setFanSpeedLocked(dutyCycle uint32) error {
 	if m.fanPin == "" {
-		return
+		return nil
 	}
 
-	// Clamp speed to valid range
-	if speed < fanSpeedLow {
-		speed = fanSpeedLow
+	// Clamp duty cycle to valid range
+	if dutyCycle < fanSpeedLow {
+		dutyCycle = fanSpeedLow
 	}
-	if speed > fanSpeedHigh {
-		speed = fanSpeedHigh
+	if dutyCycle > fanSpeedHigh {
+		dutyCycle = fanSpeedHigh
 	}
 
-	m.gpio.SetPWMDutyCycle(m.fanPin, uint32(speed))
-	m.state.FanSpeed = speed
+	if err := m.gpio.SetPWMDutyCycle(m.fanPin, dutyCycle); err != nil {
+		return fmt.Errorf("failed to set fan PWM: %w", err)
+	}
+	m.state.FanSpeed = dutyCycle
+	return nil
 }
 
 // setThrottlingLocked controls the throttling GPIO pin - must be called with lock held
@@ -109,7 +128,9 @@ func (m *Monitor) setThrottlingLocked(enabled bool) {
 		return
 	}
 
-	m.gpio.SetPinState(m.throttlePin, enabled)
+	if err := m.gpio.SetPinState(m.throttlePin, enabled); err != nil {
+		m.state.addWarning(fmt.Sprintf("Failed to set throttling state: %v", err))
+	}
 	m.state.Throttled = enabled
 }
 
