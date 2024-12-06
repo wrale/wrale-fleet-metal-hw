@@ -64,72 +64,94 @@ func (m *mockPWMPin) GetHighCount() int {
 }
 
 func TestPWM(t *testing.T) {
-	ctrl, err := New()
-	if err != nil {
-		t.Fatalf("Failed to create GPIO controller: %v", err)
+	if testing.Short() {
+		t.Skip("Skipping PWM test in short mode")
 	}
-	defer ctrl.Close()
+	t.Parallel()
 
-	pin := &mockPWMPin{}
-	pinName := "test_pwm"
+	// Set overall test timeout
+	timer := time.NewTimer(500 * time.Millisecond)
+	defer timer.Stop()
 
-	// Test PWM configuration
-	t.Run("Configure PWM", func(t *testing.T) {
-		err := ctrl.ConfigurePWM(pinName, pin, PWMConfig{
-			Frequency:  1000,
-			DutyCycle: 50,
-			Pull:      gpio.Float,
-		})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		ctrl, err := New()
 		if err != nil {
-			t.Errorf("Failed to configure PWM: %v", err)
+			t.Errorf("Failed to create GPIO controller: %v", err)
+			return
 		}
+		defer ctrl.Close()
 
-		// Verify pull was configured
-		if pin.Pull() != gpio.Float {
-			t.Error("Pull not configured correctly")
-		}
-	})
+		pin := &mockPWMPin{}
+		pinName := "test_pwm"
 
-	// Test duty cycle changes
-	t.Run("Duty Cycle", func(t *testing.T) {
-		// Enable PWM
-		if err := ctrl.EnablePWM(pinName); err != nil {
-			t.Errorf("Failed to enable PWM: %v", err)
-		}
+		// Test PWM configuration
+		t.Run("Configure PWM", func(t *testing.T) {
+			err := ctrl.ConfigurePWM(pinName, pin, PWMConfig{
+				Frequency:  1000,
+				DutyCycle: 50,
+				Pull:      gpio.Float,
+			})
+			if err != nil {
+				t.Errorf("Failed to configure PWM: %v", err)
+			}
 
-		// Let PWM run for a bit
-		time.Sleep(50 * time.Millisecond)
-		initialHigh := pin.GetHighCount()
+			// Verify pull was configured
+			if pin.Pull() != gpio.Float {
+				t.Error("Pull not configured correctly")
+			}
+		})
 
-		// Change duty cycle
-		if err := ctrl.SetPWMDutyCycle(pinName, 75); err != nil {
-			t.Errorf("Failed to set duty cycle: %v", err)
-		}
+		// Test duty cycle changes
+		t.Run("Duty Cycle", func(t *testing.T) {
+			// Enable PWM
+			if err := ctrl.EnablePWM(pinName); err != nil {
+				t.Errorf("Failed to enable PWM: %v", err)
+			}
 
-		// Let it run again and verify more high counts with higher duty cycle
-		time.Sleep(50 * time.Millisecond)
-		finalHigh := pin.GetHighCount()
-		if finalHigh-initialHigh <= initialHigh {
-			t.Error("Higher duty cycle did not result in more HIGH outputs")
-		}
-	})
+			// Let PWM run for a bit
+			time.Sleep(50 * time.Millisecond)
+			initialHigh := pin.GetHighCount()
 
-	// Test PWM disable
-	t.Run("Disable PWM", func(t *testing.T) {
-		if err := ctrl.DisablePWM(pinName); err != nil {
-			t.Errorf("Failed to disable PWM: %v", err)
-		}
+			// Change duty cycle
+			if err := ctrl.SetPWMDutyCycle(pinName, 75); err != nil {
+				t.Errorf("Failed to set duty cycle: %v", err)
+			}
 
-		// Pin should be low when disabled
-		if pin.Read() != gpio.Low {
-			t.Error("Pin not set LOW when PWM disabled")
-		}
+			// Let it run again and verify more high counts with higher duty cycle
+			time.Sleep(50 * time.Millisecond)
+			finalHigh := pin.GetHighCount()
+			if finalHigh-initialHigh <= initialHigh {
+				t.Error("Higher duty cycle did not result in more HIGH outputs")
+			}
+		})
 
-		// High count should not increase after disable
-		highCount := pin.GetHighCount()
-		time.Sleep(50 * time.Millisecond)
-		if pin.GetHighCount() != highCount {
-			t.Error("Pin still toggling after PWM disabled")
-		}
-	})
+		// Test PWM disable
+		t.Run("Disable PWM", func(t *testing.T) {
+			if err := ctrl.DisablePWM(pinName); err != nil {
+				t.Errorf("Failed to disable PWM: %v", err)
+			}
+
+			// Pin should be low when disabled
+			if pin.Read() != gpio.Low {
+				t.Error("Pin not set LOW when PWM disabled")
+			}
+
+			// High count should not increase after disable
+			highCount := pin.GetHighCount()
+			time.Sleep(50 * time.Millisecond)
+			if pin.GetHighCount() != highCount {
+				t.Error("Pin still toggling after PWM disabled")
+			}
+		})
+	}()
+
+	select {
+	case <-timer.C:
+		t.Fatal("Test timeout after 500ms")
+	case <-done:
+		// Test completed successfully
+	}
 }
