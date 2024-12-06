@@ -2,7 +2,6 @@ package thermal
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 )
@@ -121,14 +120,5 @@ func (m *Monitor) Close() error {
 			return fmt.Errorf("failed to disable fan PWM: %w", err)
 		}
 	}
-	return nil
-}
-
-// setFanSpeed is a public method for controlling fan speed
-func (m *Monitor) SetFanSpeed(speed int) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-	
-	m.setFanSpeedLocked(speed)
 	return nil
 }
