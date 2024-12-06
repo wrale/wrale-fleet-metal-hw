@@ -2,6 +2,42 @@
 
 Pure hardware management layer for Wrale Fleet. Handles direct hardware interactions, raw sensor data, and hardware-level safety for Raspberry Pi devices. Part of the Wrale Fleet Metal project.
 
+## Feature Status
+
+| Feature | Developed | Unit Written | Unit Passing | HW Sim | HW Tested |
+|---------|-----------|--------------|--------------|--------|------------|
+| **GPIO Management** |
+| - Pin Control | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Interrupt Handling | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - PWM Support | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Pull-up/down Config | ✅ | ✅ | ✅ | ✅ | ❓ |
+| **Power Management** |
+| - Multiple Sources | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Battery Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Voltage/Current | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Power Stability | ✅ | ✅ | ✅ | ✅ | ❓ |
+| **Thermal Management** |
+| - Temperature Reading | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - PWM Fan Control | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Thermal Throttling | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Multi-zone Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
+| **Physical Security** |
+| - Case Intrusion | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Motion Detection | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Voltage Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Tamper Response | ✅ | ✅ | ✅ | ✅ | ❓ |
+| **Hardware Diagnostics** |
+| - Component Testing | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Sensor Validation | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Fault Detection | ✅ | ✅ | ✅ | ✅ | ❓ |
+
+Legend:
+- ✅ Completed
+- ❓ To Be Verified
+- ❌ Not Started
+
 ## Scope
 
 ### In Scope
