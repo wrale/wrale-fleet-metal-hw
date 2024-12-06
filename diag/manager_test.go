@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wrale/wrale-fleet-metal-hw/gpio"
 	"github.com/wrale/wrale-fleet-metal-hw/power"
 	"github.com/wrale/wrale-fleet-metal-hw/thermal"
 	"github.com/wrale/wrale-fleet-metal-hw/secure"
@@ -40,7 +39,14 @@ func newMockHardware() *mockHardware {
 	}
 }
 
-// Mock GPIO interface
+// Mock interface methods
+func (m *mockHardware) ConfigurePin(name string, pin interface{}, pull interface{}) error {
+	m.Lock()
+	defer m.Unlock()
+	m.pinStates[name] = false
+	return nil
+}
+
 func (m *mockHardware) SetPinState(name string, high bool) error {
 	m.Lock()
 	defer m.Unlock()
@@ -55,7 +61,7 @@ func (m *mockHardware) GetPinState(name string) (bool, error) {
 }
 
 // Mock Power interface
-func (m *mockHardware) GetState() power.PowerState {
+func (m *mockHardware) GetPowerState() power.PowerState {
 	m.RLock()
 	defer m.RUnlock()
 	return power.PowerState{
@@ -76,10 +82,11 @@ func (m *mockHardware) GetThermalState() thermal.ThermalState {
 	}
 }
 
-func (m *mockHardware) SetFanSpeed(speed int) {
+func (m *mockHardware) SetFanSpeed(speed int) error {
 	m.Lock()
 	defer m.Unlock()
 	m.fanSpeed = speed
+	return nil
 }
 
 // Mock Security interface
@@ -102,7 +109,7 @@ func TestDiagnostics(t *testing.T) {
 
 	// Create diagnostic manager
 	mgr, err := New(Config{
-		GPIO: mock,
+		GPIO:     mock,
 		GPIOPins: []string{"test_pin1", "test_pin2"},
 		LoadTestTime: 100 * time.Millisecond,
 		MinVoltage: 4.8,
