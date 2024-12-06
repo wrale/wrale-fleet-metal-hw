@@ -1,12 +1,6 @@
 package secure
 
-import (
-	"context"
-	"testing"
-	"time"
-
-	"github.com/wrale/wrale-fleet-metal-hw/gpio"
-)
+import "testing"
 
 func TestSecurityManager(t *testing.T) {
 	// Skip hardware test in CI

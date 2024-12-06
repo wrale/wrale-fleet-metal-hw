@@ -25,7 +25,11 @@ func (m *mockPWMPin) Number() int                      { return 0 }
 func (m *mockPWMPin) Function() string                 { return "PWM" }
 func (m *mockPWMPin) DefaultPull() gpio.Pull           { return gpio.Float }
 func (m *mockPWMPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
-func (m *mockPWMPin) Pull() gpio.Pull { return m.pull }
+func (m *mockPWMPin) Pull() gpio.Pull {
+	m.Lock()
+	defer m.Unlock()
+	return m.pull
+}
 func (m *mockPWMPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func (m *mockPWMPin) In(pull gpio.Pull, edge gpio.Edge) error {
@@ -51,6 +55,12 @@ func (m *mockPWMPin) Out(l gpio.Level) error {
 		m.lowCount++
 	}
 	return nil
+}
+
+func (m *mockPWMPin) GetHighCount() int {
+	m.Lock()
+	defer m.Unlock()
+	return m.highCount
 }
 
 func TestPWM(t *testing.T) {
@@ -89,7 +99,7 @@ func TestPWM(t *testing.T) {
 
 		// Let PWM run for a bit
 		time.Sleep(50 * time.Millisecond)
-		initialHigh := pin.highCount
+		initialHigh := pin.GetHighCount()
 
 		// Change duty cycle
 		if err := ctrl.SetPWMDutyCycle(pinName, 75); err != nil {
@@ -98,7 +108,8 @@ func TestPWM(t *testing.T) {
 
 		// Let it run again and verify more high counts with higher duty cycle
 		time.Sleep(50 * time.Millisecond)
-		if pin.highCount-initialHigh <= initialHigh {
+		finalHigh := pin.GetHighCount()
+		if finalHigh-initialHigh <= initialHigh {
 			t.Error("Higher duty cycle did not result in more HIGH outputs")
 		}
 	})
@@ -115,9 +126,9 @@ func TestPWM(t *testing.T) {
 		}
 
 		// High count should not increase after disable
-		highCount := pin.highCount
+		highCount := pin.GetHighCount()
 		time.Sleep(50 * time.Millisecond)
-		if pin.highCount != highCount {
+		if pin.GetHighCount() != highCount {
 			t.Error("Pin still toggling after PWM disabled")
 		}
 	})
