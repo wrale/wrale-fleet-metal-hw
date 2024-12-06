@@ -7,34 +7,34 @@ Pure hardware management layer for Wrale Fleet. Handles direct hardware interact
 
 ## Feature Status
 
-| Feature | Developed | Unit Written | Unit Passing | HW Sim | HW Tested |
-|---------|-----------|--------------|--------------|--------|------------|
+| Feature | Developed | Unit Written | Unit Passing | HW Sim | HW Tested | Required Hardware |
+|---------|-----------|--------------|--------------|--------|-----------|------------------|
 | **GPIO Management** |
-| - Pin Control | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Interrupt Handling | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - PWM Support | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Pull-up/down Config | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Pin Control | ✅ | ✅ | ✅ | ✅ | ❓ | None |
+| - Interrupt Handling | ✅ | ✅ | ✅ | ✅ | ❓ | None |
+| - PWM Support | ✅ | ✅ | ✅ | ✅ | ❓ | None |
+| - Pull-up/down Config | ✅ | ✅ | ✅ | ✅ | ❓ | None |
 | **Power Management** |
-| - Multiple Sources | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Battery Monitoring | ✅ | ✅ | ✅ | ❓ | ❓ |
-| - Voltage/Current | ✅ | ✅ | ✅ | ❓ | ❓ |
-| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
-| - Power Stability | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Multiple Sources | ✅ | ✅ | ✅ | ✅ | ❓ | Power Distribution Board |
+| - Battery Monitoring | ✅ | ✅ | ✅ | ❓ | ❓ | Battery HAT / UPS |
+| - Voltage/Current | ✅ | ✅ | ✅ | ❓ | ❓ | INA219 or Similar ADC |
+| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ | Load Banks, Power Meter |
+| - Power Stability | ✅ | ✅ | ✅ | ❓ | ❓ | Voltage Monitor Board |
 | **Thermal Management** |
-| - Temperature Reading | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - PWM Fan Control | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Thermal Throttling | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Multi-zone Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Temperature Reading | ✅ | ✅ | ✅ | ✅ | ❓ | None (Built-in) |
+| - PWM Fan Control | ✅ | ✅ | ✅ | ✅ | ❓ | PWM-compatible Fan |
+| - Thermal Throttling | ✅ | ✅ | ✅ | ✅ | ❓ | None (Built-in) |
+| - Multi-zone Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ | External Temp Sensors |
 | **Physical Security** |
-| - Case Intrusion | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Motion Detection | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Voltage Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Tamper Response | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Case Intrusion | ✅ | ✅ | ✅ | ✅ | ❓ | Case Switch Sensor |
+| - Motion Detection | ✅ | ✅ | ✅ | ✅ | ❓ | PIR Motion Sensor |
+| - Voltage Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ | Voltage Monitor Board |
+| - Tamper Response | ✅ | ✅ | ✅ | ✅ | ❓ | Security GPIO Board |
 | **Hardware Diagnostics** |
-| - Component Testing | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Sensor Validation | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
-| - Fault Detection | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Component Testing | ✅ | ✅ | ✅ | ✅ | ❓ | Varies by Component |
+| - Sensor Validation | ✅ | ✅ | ✅ | ✅ | ❓ | Calibration Tools |
+| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ | Load Banks, Power Meter |
+| - Fault Detection | ✅ | ✅ | ✅ | ❓ | ❓ | Sensor Array |
 
 Legend:
 - ✅ Completed/Verified
@@ -148,6 +148,15 @@ The project includes GitHub Actions workflows for:
 - Humidity: Up to 80% non-condensing
 - Enclosure: IP65 or better recommended
 
+### Additional Hardware (Based on Features)
+- PWM-compatible cooling fan
+- Battery HAT or UPS system
+- Power monitoring HAT/board (INA219 or similar)
+- Temperature sensor array
+- Security sensors (case, motion, voltage)
+- Load banks for power testing
+- Calibration tools for sensors
+
 ## Integration
 
 This package provides the hardware abstraction layer for the Wrale Fleet Metal system. It should be consumed by fleet-metal-core for system-level management. Direct hardware access should only occur through this package.
@@ -158,6 +167,7 @@ This package provides the hardware abstraction layer for the Wrale Fleet Metal s
 - Go 1.21+
 - Access to RPi hardware or simulation environment
 - Basic electronics knowledge
+- Required hardware components based on features needed
 
 ### Testing
 ```bash
