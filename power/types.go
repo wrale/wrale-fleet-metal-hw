@@ -16,10 +16,13 @@ const (
 	
 	// Default monitoring interval
 	defaultMonitorInterval = 1 * time.Second
+	defaultStabilityInterval = 100 * time.Millisecond
 
 	// Critical power thresholds
 	criticalBatteryLevel = 10.0  // 10% battery remaining
-	criticalVoltage     = 4.8   // 4.8V (assuming 5V system)
+	criticalVoltage     = 4.8    // 4.8V (assuming 5V system)
+	criticalRipple     = 0.5     // 0.5V peak-to-peak ripple
+	criticalCurrent    = 2.0     // 2.0A maximum current draw
 )
 
 // PowerState represents the current power status
@@ -31,7 +34,59 @@ type PowerState struct {
 	AvailablePower  map[PowerSource]bool
 	PowerConsumption float64 // in watts
 	UpdatedAt       time.Time
+
+	// Enhanced stability metrics
+	StabilityMetrics *StabilityMetrics `json:",omitempty"`
 }
+
+// StabilityMetrics provides detailed power quality measurements
+type StabilityMetrics struct {
+	VoltageRipple     float64   // Peak-to-peak voltage variation
+	MinVoltage        float64   // Minimum voltage in sample window
+	MaxVoltage        float64   // Maximum voltage in sample window
+	AverageVoltage    float64   // Moving average voltage
+	PowerCycles       int       // Number of power cycles detected
+	LastCycleDuration time.Duration // Duration of last power cycle
+	CurrentSpikes     int       // Number of current spikes detected
+	MaxCurrentSpike   float64   // Maximum current spike amplitude
+	Warnings          []string  // Active power quality warnings
+	UpdatedAt         time.Time // Last metrics update
+}
+
+// StabilityConfig holds power stability monitoring configuration 
+type StabilityConfig struct {
+	// Minimum samples to keep for stability analysis
+	SampleWindow     int
+	// How frequently to sample power metrics
+	SampleInterval   time.Duration
+	// Voltage ripple threshold (volts)
+	RippleThreshold  float64
+	// Maximum allowed current draw (amps)
+	CurrentThreshold float64
+	// Callback for stability events
+	OnStabilityEvent func(StabilityEvent)
+}
+
+// StabilityEvent represents a power quality incident
+type StabilityEvent struct {
+	Timestamp   time.Time
+	Type        StabilityEventType
+	Reading     float64
+	Threshold   float64
+	Source      PowerSource
+	Details     string
+}
+
+// StabilityEventType identifies different stability events
+type StabilityEventType string
+
+const (
+	EventVoltageRipple   StabilityEventType = "VOLTAGE_RIPPLE"
+	EventVoltageSag      StabilityEventType = "VOLTAGE_SAG"
+	EventCurrentSpike    StabilityEventType = "CURRENT_SPIKE"
+	EventPowerCycle      StabilityEventType = "POWER_CYCLE"
+	EventSourceFailover  StabilityEventType = "SOURCE_FAILOVER"
+)
 
 // Config holds power manager configuration
 type Config struct {
@@ -42,4 +97,7 @@ type Config struct {
 	VoltageADCPath  string  // sysfs path to voltage ADC
 	CurrentADCPath  string  // sysfs path to current sensor ADC
 	OnPowerCritical func(PowerState) // Callback for critical power events
+	
+	// Stability monitoring configuration
+	StabilityConfig *StabilityConfig
 }
