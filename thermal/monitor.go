@@ -88,13 +88,3 @@ func (m *Monitor) Monitor(ctx context.Context) error {
 		}
 	}
 }
-
-// Close releases thermal control resources
-func (m *Monitor) Close() error {
-	if m.fanPin != "" {
-		if err := m.gpio.DisablePWM(m.fanPin); err != nil {
-			return fmt.Errorf("failed to disable fan PWM: %w", err)
-		}
-	}
-	return nil
-}

@@ -1,6 +1,7 @@
 package power
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -70,4 +71,39 @@ func (m *Manager) GetState() PowerState {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 	return m.state
+}
+
+// Monitor starts monitoring power state in the background
+func (m *Manager) Monitor(ctx context.Context) error {
+	ticker := time.NewTicker(m.monitorInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if err := m.updatePowerState(ctx); err != nil {
+				return fmt.Errorf("failed to update power state: %w", err)
+			}
+		}
+	}
+}
+
+// updatePowerState reads current power status
+func (m *Manager) updatePowerState(ctx context.Context) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	// Check power sources
+	for source, pin := range m.powerPins {
+		available, err := m.gpio.GetPinState(pin)
+		if err != nil {
+			return fmt.Errorf("failed to check power source %s: %w", source, err)
+		}
+		m.state.AvailablePower[source] = available
+	}
+
+	m.state.UpdatedAt = time.Now()
+	return nil
 }

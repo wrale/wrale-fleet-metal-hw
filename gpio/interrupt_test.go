@@ -12,30 +12,30 @@ import (
 
 // mockInterruptPin mocks a pin with interrupt capabilities
 type mockInterruptPin struct {
-	sync.RWMutex
+	sync.RWMutex  // embedded mutex
 	state bool
 	edge  gpio.Edge
 	pullState gpio.Pull
 }
 
 func (m *mockInterruptPin) In(pull gpio.Pull, edge gpio.Edge) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	m.edge = edge
 	m.pullState = pull
 	return nil
 }
 
 func (m *mockInterruptPin) Out(l gpio.Level) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	m.state = l == gpio.High
 	return nil
 }
 
 func (m *mockInterruptPin) Read() gpio.Level {
-	m.mux.RLock()
-	defer m.mux.RUnlock()
+	m.RLock()
+	defer m.RUnlock()
 	if m.state {
 		return gpio.High
 	}
