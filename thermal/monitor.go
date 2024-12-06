@@ -72,11 +72,6 @@ func (m *Monitor) GetState() ThermalState {
 	return m.state
 }
 
-// SetFanSpeed sets the fan speed directly (0-100)
-func (m *Monitor) SetFanSpeed(speed int) error {
-	return m.setFanSpeed(speed)
-}
-
 // Monitor starts monitoring thermal state in the background
 func (m *Monitor) Monitor(ctx context.Context) error {
 	ticker := time.NewTicker(m.monitorInterval)
@@ -92,4 +87,14 @@ func (m *Monitor) Monitor(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// Close releases thermal control resources
+func (m *Monitor) Close() error {
+	if m.fanPin != "" {
+		if err := m.gpio.DisablePWM(m.fanPin); err != nil {
+			return fmt.Errorf("failed to disable fan PWM: %w", err)
+		}
+	}
+	return nil
 }

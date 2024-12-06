@@ -12,7 +12,7 @@ import (
 
 // mockInterruptPin mocks a pin with interrupt capabilities
 type mockInterruptPin struct {
-	mux   sync.RWMutex
+	sync.RWMutex
 	state bool
 	edge  gpio.Edge
 	pullState gpio.Pull
@@ -51,6 +51,7 @@ func (m *mockInterruptPin) Halt() error    { return nil }
 func (m *mockInterruptPin) DefaultPull() gpio.Pull { return gpio.Float }
 func (m *mockInterruptPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
 func (m *mockInterruptPin) Pull() gpio.Pull { return m.pullState }
+func (m *mockInterruptPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestInterrupts(t *testing.T) {
 	// Create controller

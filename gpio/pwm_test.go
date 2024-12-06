@@ -26,6 +26,7 @@ func (m *mockPWMPin) Function() string                 { return "PWM" }
 func (m *mockPWMPin) DefaultPull() gpio.Pull           { return gpio.Float }
 func (m *mockPWMPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
 func (m *mockPWMPin) Pull() gpio.Pull { return m.pull }
+func (m *mockPWMPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func (m *mockPWMPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	m.Lock()
@@ -119,4 +120,9 @@ func TestPWM(t *testing.T) {
 			t.Error("Pin still toggling after PWM disabled")
 		}
 	})
+
+	// Test cleanup
+	if err := ctrl.Close(); err != nil {
+		t.Errorf("Failed to close controller: %v", err)
+	}
 }
