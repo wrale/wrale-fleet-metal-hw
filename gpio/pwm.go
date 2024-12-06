@@ -36,6 +36,22 @@ func (c *Controller) ConfigurePWM(name string, pin gpio.PinIO, cfg PWMConfig) er
 		return fmt.Errorf("duty cycle must be 0-100")
 	}
 
+	if c.simulation {
+		// In simulation mode, allow nil pin and just track state
+		c.pwmPins[name] = &pwmState{
+			pin:       pin,
+			config:    cfg,
+			enabled:   false,
+			dutyCycle: cfg.DutyCycle,
+			done:      make(chan struct{}),
+		}
+		return nil
+	}
+
+	if pin == nil {
+		return fmt.Errorf("pin cannot be nil in non-simulation mode")
+	}
+
 	// Configure pin for output with pull setting
 	if err := pin.In(cfg.Pull, gpio.NoEdge); err != nil {
 		return fmt.Errorf("failed to configure pin pull: %w", err)
@@ -60,6 +76,10 @@ func (c *Controller) ConfigurePWM(name string, pin gpio.PinIO, cfg PWMConfig) er
 func (c *Controller) updatePWM(state *pwmState) error {
 	if !state.enabled {
 		return nil
+	}
+
+	if c.simulation {
+		return nil // No actual pin updates in simulation mode
 	}
 	
 	// Update duty cycle immediately
@@ -119,8 +139,11 @@ func (c *Controller) EnablePWM(name string) error {
 
 	state.enabled = true
 	state.done = make(chan struct{})
-	state.wg.Add(1)
-	go c.pwmLoop(state)
+	
+	if !c.simulation {
+		state.wg.Add(1)
+		go c.pwmLoop(state)
+	}
 
 	return nil
 }
@@ -145,11 +168,15 @@ func (c *Controller) DisablePWM(name string) error {
 	close(state.done)
 	state.mux.Unlock()
 
-	// Wait for PWM loop to exit
-	state.wg.Wait()
-	
-	// Set pin low after goroutine exits
-	return state.pin.Out(gpio.Low)
+	if !c.simulation {
+		// Wait for PWM loop to exit
+		state.wg.Wait()
+		
+		// Set pin low after goroutine exits
+		return state.pin.Out(gpio.Low)
+	}
+
+	return nil
 }
 
 // GetPWMState returns the current PWM configuration

@@ -16,6 +16,9 @@ type Controller struct {
 	pwmPins    map[string]*pwmState
 	enabled    bool
 	simulation bool
+	
+	// Simulated state
+	simPinStates map[string]bool
 }
 
 // New creates a new GPIO controller
@@ -39,6 +42,7 @@ func New(opts ...Option) (*Controller, error) {
 		pwmPins:    make(map[string]*pwmState),
 		enabled:    true,
 		simulation: options.SimulationMode,
+		simPinStates: make(map[string]bool),
 	}, nil
 }
 
@@ -51,11 +55,19 @@ func (c *Controller) ConfigurePin(name string, pin gpio.PinIO, pull gpio.Pull) e
 		return fmt.Errorf("GPIO controller is disabled")
 	}
 
-	// Skip actual hardware configuration in simulation mode
-	if !c.simulation {
-		if err := pin.In(pull, gpio.NoEdge); err != nil {
-			return fmt.Errorf("failed to configure pin: %w", err)
-		}
+	if c.simulation {
+		c.pins[name] = pin // Allow nil pin in simulation mode
+		c.simPinStates[name] = false
+		return nil
+	}
+
+	if pin == nil {
+		return fmt.Errorf("pin cannot be nil in non-simulation mode")
+	}
+
+	// Configure pin for input with pull setting
+	if err := pin.In(pull, gpio.NoEdge); err != nil {
+		return fmt.Errorf("failed to configure pin: %w", err)
 	}
 
 	c.pins[name] = pin
@@ -64,17 +76,21 @@ func (c *Controller) ConfigurePin(name string, pin gpio.PinIO, pull gpio.Pull) e
 
 // SetPinState sets the state of a GPIO pin
 func (c *Controller) SetPinState(name string, high bool) error {
-	c.mux.RLock()
-	defer c.mux.RUnlock()
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	if c.simulation {
+		c.simPinStates[name] = high
+		return nil
+	}
 
 	pin, exists := c.pins[name]
 	if !exists {
 		return fmt.Errorf("pin %s not found", name)
 	}
 
-	// Skip actual hardware writes in simulation mode
-	if c.simulation {
-		return nil
+	if pin == nil {
+		return fmt.Errorf("pin %s is nil", name)
 	}
 
 	if high {
@@ -88,14 +104,21 @@ func (c *Controller) GetPinState(name string) (bool, error) {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
 
+	if c.simulation {
+		state, exists := c.simPinStates[name]
+		if !exists {
+			return false, fmt.Errorf("pin %s not found", name)
+		}
+		return state, nil
+	}
+
 	pin, exists := c.pins[name]
 	if !exists {
 		return false, fmt.Errorf("pin %s not found", name)
 	}
 
-	// In simulation mode, return default value
-	if c.simulation {
-		return false, nil
+	if pin == nil {
+		return false, fmt.Errorf("pin %s is nil", name)
 	}
 
 	return pin.Read() == gpio.High, nil
@@ -114,7 +137,9 @@ func (c *Controller) Close() error {
 
 		// Set all pins to safe state
 		for _, pin := range c.pins {
-			pin.Out(gpio.Low)
+			if pin != nil {
+				pin.Out(gpio.Low)
+			}
 		}
 	}
 
