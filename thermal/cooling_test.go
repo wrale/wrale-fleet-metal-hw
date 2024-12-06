@@ -94,7 +94,7 @@ func (m *mockThrottlePin) PWM(duty gpio.Duty, f physic.Frequency) error { return
 func (m *mockThrottlePin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestCooling(t *testing.T) {
-	gpioCtrl, err := hw_gpio.New()
+	gpioCtrl, err := hw_gpio.New(hw_gpio.WithSimulation())
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}
@@ -110,20 +110,25 @@ func TestCooling(t *testing.T) {
 		t.Fatalf("Failed to configure throttle pin: %v", err)
 	}
 
-	monitor := &Monitor{
-		gpio:        gpioCtrl,
-		fanPin:      "test_fan",
-		throttlePin: "test_throttle",
-		state: ThermalState{
-			CPUTemp: 45.0,
-			GPUTemp: 40.0,
-		},
+	monitor, err := New(Config{
+		GPIO: gpioCtrl,
+		FanControlPin: "test_fan",
+		ThrottlePin: "test_throttle",
+		MonitorInterval: 100 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create thermal monitor: %v", err)
 	}
 
 	// Test fan initialization
 	t.Run("Fan Initialization", func(t *testing.T) {
 		if err := monitor.InitializeFanControl(); err != nil {
 			t.Errorf("Failed to initialize fan control: %v", err)
+		}
+		
+		state := monitor.GetState()
+		if state.FanSpeed != fanSpeedLow {
+			t.Errorf("Expected initial fan speed %d, got %d", fanSpeedLow, state.FanSpeed)
 		}
 	})
 
@@ -132,20 +137,22 @@ func TestCooling(t *testing.T) {
 		// Test low temperature
 		monitor.state.CPUTemp = 35.0
 		monitor.updateCooling()
-		if monitor.state.FanSpeed != fanSpeedLow {
-			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, monitor.state.FanSpeed)
+		state := monitor.GetState()
+		if want := fanSpeedLow; state.FanSpeed != want {
+			t.Errorf("Expected fan speed %d at low temp, got %d", want, state.FanSpeed)
 		}
-		if monitor.state.Throttled {
+		if state.Throttled {
 			t.Error("Throttling enabled at low temperature")
 		}
 
 		// Test critical temperature
 		monitor.state.CPUTemp = cpuTempCritical
 		monitor.updateCooling()
-		if monitor.state.FanSpeed != fanSpeedHigh {
-			t.Error("Fan not at full speed at critical temperature")
+		state = monitor.GetState()
+		if want := fanSpeedHigh; state.FanSpeed != want {
+			t.Errorf("Expected fan speed %d at critical temp, got %d", want, state.FanSpeed)
 		}
-		if !monitor.state.Throttled {
+		if !state.Throttled {
 			t.Error("Throttling not enabled at critical temperature")
 		}
 	})

@@ -21,3 +21,19 @@ type PWMConfig struct {
 	// Pull up/down configuration
 	Pull gpio.Pull
 }
+
+// Options configures GPIO controller behavior
+type Options struct {
+	// SimulationMode bypasses hardware initialization
+	SimulationMode bool
+}
+
+// Option is a function that configures Options
+type Option func(*Options)
+
+// WithSimulation enables simulation mode
+func WithSimulation() Option {
+	return func(opts *Options) {
+		opts.SimulationMode = true
+	}
+}

@@ -1,5 +1,8 @@
 # Wrale Fleet Metal Hardware
 
+[![Go](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/go.yml/badge.svg)](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/go.yml)
+[![Lint](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/lint.yml/badge.svg)](https://github.com/wrale/wrale-fleet-metal-hw/actions/workflows/lint.yml)
+
 Pure hardware management layer for Wrale Fleet. Handles direct hardware interactions, raw sensor data, and hardware-level safety for Raspberry Pi devices. Part of the Wrale Fleet Metal project.
 
 ## Feature Status
@@ -7,34 +10,34 @@ Pure hardware management layer for Wrale Fleet. Handles direct hardware interact
 | Feature | Developed | Unit Written | Unit Passing | HW Sim | HW Tested |
 |---------|-----------|--------------|--------------|--------|------------|
 | **GPIO Management** |
-| - Pin Control | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Interrupt Handling |  ✅ | ✅ | ❓ | ❓ | ❓ |
-| - PWM Support | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Pull-up/down Config | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Pin Control | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Interrupt Handling | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - PWM Support | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Pull-up/down Config | ✅ | ✅ | ✅ | ✅ | ❓ |
 | **Power Management** |
-| - Multiple Sources | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Battery Monitoring | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Voltage/Current | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Load Testing | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Power Stability | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Multiple Sources | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Battery Monitoring | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Voltage/Current | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Power Stability | ✅ | ✅ | ✅ | ❓ | ❓ |
 | **Thermal Management** |
-| - Temperature Reading | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - PWM Fan Control | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Thermal Throttling | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Multi-zone Monitoring | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Temperature Reading | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - PWM Fan Control | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Thermal Throttling | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Multi-zone Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
 | **Physical Security** |
-| - Case Intrusion | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Motion Detection | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Voltage Monitoring | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Tamper Response | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Case Intrusion | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Motion Detection | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Voltage Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Tamper Response | ✅ | ✅ | ✅ | ✅ | ❓ |
 | **Hardware Diagnostics** |
-| - Component Testing | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Sensor Validation | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Load Testing | ✅ | ✅ | ❓ | ❓ | ❓ |
-| - Fault Detection | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Component Testing | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Sensor Validation | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
+| - Fault Detection | ✅ | ✅ | ✅ | ❓ | ❓ |
 
 Legend:
-- ✅ Completed
+- ✅ Completed/Verified
 - ❓ To Be Verified
 - ❌ Not Started
 
@@ -93,6 +96,29 @@ Legend:
 - Basic hardware health checks
 - Power load testing
 
+## Testing Features
+
+### Simulation Mode
+The package includes a simulation mode that allows testing without physical hardware:
+- GPIO simulation with pin state and pull configuration
+- PWM duty cycle and fan control simulation
+- Basic power state simulation
+- Thermal state tracking
+- Security sensor simulation
+
+### Hardware Testing
+- Full simulation mode for development and testing
+- Unit tests for all subsystems
+- Integration test coverage
+- Physical hardware validation (requires RPi)
+
+### Continuous Integration
+The project includes GitHub Actions workflows for:
+- Automated testing on each PR and push
+- Go linting and static analysis
+- Race condition detection
+- Code quality checks
+
 ## Directory Structure
 ```
 .
@@ -135,14 +161,17 @@ This package provides the hardware abstraction layer for the Wrale Fleet Metal s
 
 ### Testing
 ```bash
-# Run all hardware tests with simulation
-go test ./...
+# Run all tests in simulation mode
+go test -v -race ./...
+
+# Run linting checks
+golangci-lint run
 
 # Test specific hardware subsystem
-go test ./power/...
+go test -v -race ./power/...
 ```
 
-See [Hardware Testing Guide](docs/HARDWARE_TESTING.md) for physical device testing.
+See [Hardware Testing Guide](docs/HARDWARE_TESTING.md) for physical device testing details.
 
 ## Contributing
 

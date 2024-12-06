@@ -1,0 +1,36 @@
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gosec
+    - prealloc
+
+linters-settings:
+  gosec:
+    excludes:
+      - G104  # Allow skipping errors for simulation mode
+
+  gofmt:
+    simplify: true
+
+run:
+  deadline: 5m
+  tests: true
+
+issues:
+  exclude-use-default: false
+  max-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gosec
+        - prealloc
