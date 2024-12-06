@@ -129,5 +129,19 @@ func TestPWM(t *testing.T) {
 		if err := ctrl.EnablePWM("nonexistent"); err == nil {
 			t.Error("Expected error for non-existent PWM pin")
 		}
+
+		// Test invalid frequency
+		cfg := PWMConfig{
+			Frequency: 0,
+			DutyCycle: 50,
+		}
+		if err := ctrl.ConfigurePWM("bad_freq", pin, cfg); err == nil {
+			t.Error("Expected error for zero frequency")
+		}
 	})
+
+	// Cleanup
+	if err := ctrl.Close(); err != nil {
+		t.Errorf("Failed to close controller: %v", err)
+	}
 }
