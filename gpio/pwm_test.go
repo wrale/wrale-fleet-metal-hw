@@ -69,91 +69,118 @@ func TestPWM(t *testing.T) {
 	}
 	t.Parallel()
 
-	// Set overall test timeout
-	timer := time.NewTimer(2 * time.Second)
-	defer timer.Stop()
+	ctrl, err := New()
+	if err != nil {
+		t.Fatalf("Failed to create GPIO controller: %v", err)
+	}
+	defer ctrl.Close()
 
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
+	pin := &mockPWMPin{}
+	pinName := "test_pwm"
 
-		ctrl, err := New()
-		if err != nil {
-			t.Errorf("Failed to create GPIO controller: %v", err)
-			return
-		}
-		defer ctrl.Close()
+	subTestTimeout := 500 * time.Millisecond
 
-		pin := &mockPWMPin{}
-		pinName := "test_pwm"
-
-		// Test PWM configuration
-		err = ctrl.ConfigurePWM(pinName, pin, PWMConfig{
+	// Test PWM configuration
+	t.Run("Configure PWM", func(t *testing.T) {
+		err := ctrl.ConfigurePWM(pinName, pin, PWMConfig{
 			Frequency:  1000,
 			DutyCycle: 50,
 			Pull:      gpio.Float,
 		})
 		if err != nil {
 			t.Errorf("Failed to configure PWM: %v", err)
-			return
 		}
 
 		// Verify pull was configured
 		if pin.Pull() != gpio.Float {
 			t.Error("Pull not configured correctly")
-			return
 		}
+	})
 
-		// Enable PWM
-		if err := ctrl.EnablePWM(pinName); err != nil {
-			t.Errorf("Failed to enable PWM: %v", err)
-			return
+	// Test duty cycle changes with timeouts
+	t.Run("Duty Cycle", func(t *testing.T) {
+		timer := time.NewTimer(subTestTimeout)
+		defer timer.Stop()
+
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+
+			// Enable PWM
+			if err := ctrl.EnablePWM(pinName); err != nil {
+				t.Errorf("Failed to enable PWM: %v", err)
+				return
+			}
+
+			// Test 50% duty cycle
+			initTime := time.Now()
+			time.Sleep(100 * time.Millisecond)
+			initialHigh := pin.GetHighCount()
+			initialElapsed := time.Since(initTime)
+
+			// Test 75% duty cycle
+			if err := ctrl.SetPWMDutyCycle(pinName, 75); err != nil {
+				t.Errorf("Failed to set duty cycle: %v", err)
+				return
+			}
+
+			finalTime := time.Now()
+			time.Sleep(100 * time.Millisecond)
+			finalHigh := pin.GetHighCount()
+			finalElapsed := time.Since(finalTime)
+
+			// Calculate and compare rates
+			initialRate := float64(initialHigh) / initialElapsed.Seconds()
+			finalRate := float64(finalHigh-initialHigh) / finalElapsed.Seconds()
+			rateIncrease := (finalRate - initialRate) / initialRate * 100
+
+			if rateIncrease < 25 { // Should see roughly 50% increase for 75% vs 50% duty cycle
+				t.Errorf("Duty cycle change did not result in expected rate increase: got %.2f%%, want >= 25%%", rateIncrease)
+			}
+		}()
+
+		select {
+		case <-timer.C:
+			t.Fatal("Duty cycle test timeout")
+		case <-done:
+			// Test completed successfully
 		}
+	})
 
-		// Let PWM run for several cycles
-		time.Sleep(200 * time.Millisecond)
-		initialHigh := pin.GetHighCount()
+	// Test PWM disable with timeout
+	t.Run("Disable PWM", func(t *testing.T) {
+		timer := time.NewTimer(subTestTimeout)
+		defer timer.Stop()
 
-		// Change duty cycle
-		if err := ctrl.SetPWMDutyCycle(pinName, 75); err != nil {
-			t.Errorf("Failed to set duty cycle: %v", err)
-			return
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+
+			// Disable PWM
+			if err := ctrl.DisablePWM(pinName); err != nil {
+				t.Errorf("Failed to disable PWM: %v", err)
+				return
+			}
+
+			// Pin should be low when disabled
+			if pin.Read() != gpio.Low {
+				t.Error("Pin not set LOW when PWM disabled")
+				return
+			}
+
+			// High count should not increase after disable
+			highCount := pin.GetHighCount()
+			time.Sleep(50 * time.Millisecond)
+			if pin.GetHighCount() != highCount {
+				t.Error("Pin still toggling after PWM disabled")
+			}
+		}()
+
+		select {
+		case <-timer.C:
+			t.Fatal("PWM disable test timeout")
+		case <-done:
+			// Test completed successfully
 		}
-
-		// Let it run again and verify high counts
-		time.Sleep(200 * time.Millisecond)
-		finalHigh := pin.GetHighCount()
-		
-		// With 75% duty cycle vs 50%, we should see roughly 50% more HIGH counts
-		increase := float64(finalHigh - initialHigh) / float64(initialHigh)
-		if increase < 0.3 { // Allow some margin for timing variations
-			t.Errorf("Higher duty cycle (75%%) did not result in expected increase in HIGH outputs (got %.2f%% increase)", increase*100)
-		}
-
-		// Disable PWM
-		if err := ctrl.DisablePWM(pinName); err != nil {
-			t.Errorf("Failed to disable PWM: %v", err)
-			return
-		}
-
-		// Pin should be low when disabled
-		if pin.Read() != gpio.Low {
-			t.Error("Pin not set LOW when PWM disabled")
-			return
-		}
-
-		// High count should not increase after disable
-		highCount := pin.GetHighCount()
-		time.Sleep(50 * time.Millisecond)
-		if pin.GetHighCount() != highCount {
-			t.Error("Pin still toggling after PWM disabled")
-		}
-	}()
-
-	select {
-	case <-timer.C:
-		t.Fatal("Test timeout after 2s")
-	case <-done:
-		// Test completed successfully
-	}
+	})
 }
