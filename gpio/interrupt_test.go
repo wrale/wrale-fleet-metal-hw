@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/physic"
 )
 
 // mockInterruptPin mocks a pin with interrupt capabilities
@@ -46,6 +47,7 @@ func (m *mockInterruptPin) Number() int    { return 0 }
 func (m *mockInterruptPin) Function() string { return "In/Out" }
 func (m *mockInterruptPin) Halt() error    { return nil }
 func (m *mockInterruptPin) DefaultPull() gpio.Pull { return gpio.Float }
+func (m *mockInterruptPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
 
 func TestInterrupts(t *testing.T) {
 	// Create controller
@@ -57,7 +59,7 @@ func TestInterrupts(t *testing.T) {
 	// Setup test pin
 	pin := &mockInterruptPin{}
 	pinName := "test_pin"
-	if err := ctrl.ConfigurePin(pinName, pin, gpio.PullUp); err != nil {
+	if err := ctrl.ConfigurePin(pinName, pin, gpio.Float); err != nil {
 		t.Fatalf("Failed to configure pin: %v", err)
 	}
 
