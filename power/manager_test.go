@@ -2,6 +2,7 @@ package power
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 // mockPin implements a basic GPIO pin for testing
 type mockPin struct {
+	sync.Mutex
 	state bool
 	pull  gpio.Pull
 }
@@ -23,16 +25,22 @@ func (m *mockPin) Number() int                { return 0 }
 func (m *mockPin) Function() string           { return "In/Out" }
 func (m *mockPin) DefaultPull() gpio.Pull     { return gpio.Float }
 func (m *mockPin) In(pull gpio.Pull, edge gpio.Edge) error {
+	m.Lock()
+	defer m.Unlock()
 	m.pull = pull
 	return nil
 }
 func (m *mockPin) Read() gpio.Level {
+	m.Lock()
+	defer m.Unlock()
 	if m.state {
 		return gpio.High
 	}
 	return gpio.Low
 }
 func (m *mockPin) Out(l gpio.Level) error {
+	m.Lock()
+	defer m.Unlock()
 	m.state = l == gpio.High
 	return nil
 }
@@ -41,7 +49,7 @@ func (m *mockPin) PWM(duty gpio.Duty, f physic.Frequency) error { return nil }
 func (m *mockPin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestPowerManager(t *testing.T) {
-	gpioCtrl, err := hw_gpio.New()
+	gpioCtrl, err := hw_gpio.New(hw_gpio.WithSimulation())
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}
@@ -49,7 +57,6 @@ func TestPowerManager(t *testing.T) {
 	mainPin := &mockPin{}
 	batteryPin := &mockPin{}
 
-	// Configure pins before creating power manager
 	if err := gpioCtrl.ConfigurePin("main_power", mainPin, gpio.PullUp); err != nil {
 		t.Fatalf("Failed to configure main power pin: %v", err)
 	}

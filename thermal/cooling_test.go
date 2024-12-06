@@ -94,7 +94,7 @@ func (m *mockThrottlePin) PWM(duty gpio.Duty, f physic.Frequency) error { return
 func (m *mockThrottlePin) WaitForEdge(timeout time.Duration) bool { return true }
 
 func TestCooling(t *testing.T) {
-	gpioCtrl, err := hw_gpio.New()
+	gpioCtrl, err := hw_gpio.New(hw_gpio.WithSimulation())
 	if err != nil {
 		t.Fatalf("Failed to create GPIO controller: %v", err)
 	}
@@ -110,15 +110,19 @@ func TestCooling(t *testing.T) {
 		t.Fatalf("Failed to configure throttle pin: %v", err)
 	}
 
-	monitor := &Monitor{
-		gpio:        gpioCtrl,
-		fanPin:      "test_fan",
-		throttlePin: "test_throttle",
-		state: ThermalState{
-			CPUTemp: 45.0,
-			GPUTemp: 40.0,
-		},
+	monitor, err := New(Config{
+		GPIO: gpioCtrl,
+		FanControlPin: "test_fan",
+		ThrottlePin: "test_throttle",
+		MonitorInterval: 100 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create thermal monitor: %v", err)
 	}
+
+	// Initialize temperatures for testing
+	monitor.state.CPUTemp = 45.0
+	monitor.state.GPUTemp = 40.0
 
 	// Test fan initialization
 	t.Run("Fan Initialization", func(t *testing.T) {
@@ -132,20 +136,26 @@ func TestCooling(t *testing.T) {
 		// Test low temperature
 		monitor.state.CPUTemp = 35.0
 		monitor.updateCooling()
-		if monitor.state.FanSpeed != fanSpeedLow {
-			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, monitor.state.FanSpeed)
+		
+		// Get actual fan speed from state
+		state := monitor.GetState()
+		if state.FanSpeed != fanSpeedLow {
+			t.Errorf("Expected fan speed %d at low temp, got %d", fanSpeedLow, state.FanSpeed)
 		}
-		if monitor.state.Throttled {
+		if state.Throttled {
 			t.Error("Throttling enabled at low temperature")
 		}
 
 		// Test critical temperature
 		monitor.state.CPUTemp = cpuTempCritical
 		monitor.updateCooling()
-		if monitor.state.FanSpeed != fanSpeedHigh {
+		
+		// Get updated state
+		state = monitor.GetState()
+		if state.FanSpeed != fanSpeedHigh {
 			t.Error("Fan not at full speed at critical temperature")
 		}
-		if !monitor.state.Throttled {
+		if !state.Throttled {
 			t.Error("Throttling not enabled at critical temperature")
 		}
 	})
