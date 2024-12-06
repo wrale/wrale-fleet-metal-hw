@@ -16,6 +16,7 @@ type pwmState struct {
 	dutyCycle uint32
 	mux       sync.Mutex
 	done      chan struct{}
+	wg        sync.WaitGroup
 }
 
 // ConfigurePWM sets up a pin for PWM operation
@@ -117,8 +118,9 @@ func (c *Controller) EnablePWM(name string) error {
 	}
 
 	state.enabled = true
-	state.done = make(chan struct{}) // Reset done channel
-	go c.pwmLoop(state) // Start PWM loop
+	state.done = make(chan struct{})
+	state.wg.Add(1)
+	go c.pwmLoop(state)
 
 	return nil
 }
@@ -140,12 +142,14 @@ func (c *Controller) DisablePWM(name string) error {
 	}
 
 	state.enabled = false
+	close(state.done)
 	state.mux.Unlock()
 
-	close(state.done) // Signal PWM loop to exit
-	state.pin.Out(gpio.Low) // Set pin low
-
-	return nil
+	// Wait for PWM loop to exit
+	state.wg.Wait()
+	
+	// Set pin low after goroutine exits
+	return state.pin.Out(gpio.Low)
 }
 
 // GetPWMState returns the current PWM configuration
@@ -166,13 +170,17 @@ func (c *Controller) GetPWMState(name string) (PWMConfig, error) {
 
 // pwmLoop handles the PWM signal generation
 func (c *Controller) pwmLoop(state *pwmState) {
+	defer state.wg.Done()
 	period := time.Duration(1000000000/state.config.Frequency) * time.Nanosecond
 	
+	timer := time.NewTimer(period)
+	defer timer.Stop()
+
 	for {
 		select {
 		case <-state.done:
 			return
-		default:
+		case <-timer.C:
 			state.mux.Lock()
 			if !state.enabled {
 				state.mux.Unlock()
@@ -184,12 +192,12 @@ func (c *Controller) pwmLoop(state *pwmState) {
 
 			if dutyCycle == 0 {
 				state.pin.Out(gpio.Low)
-				time.Sleep(period)
+				timer.Reset(period)
 				continue
 			}
 			if dutyCycle == 100 {
 				state.pin.Out(gpio.High)
-				time.Sleep(period)
+				timer.Reset(period)
 				continue
 			}
 
@@ -199,7 +207,7 @@ func (c *Controller) pwmLoop(state *pwmState) {
 			state.pin.Out(gpio.High)
 			time.Sleep(onTime)
 			state.pin.Out(gpio.Low)
-			time.Sleep(offTime)
+			timer.Reset(offTime)
 		}
 	}
 }
