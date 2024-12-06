@@ -7,31 +7,31 @@ Pure hardware management layer for Wrale Fleet. Handles direct hardware interact
 | Feature | Developed | Unit Written | Unit Passing | HW Sim | HW Tested |
 |---------|-----------|--------------|--------------|--------|------------|
 | **GPIO Management** |
-| - Pin Control | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Interrupt Handling | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - PWM Support | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Pull-up/down Config | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Pin Control | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Interrupt Handling |  ✅ | ✅ | ❓ | ❓ | ❓ |
+| - PWM Support | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Pull-up/down Config | ✅ | ✅ | ❓ | ❓ | ❓ |
 | **Power Management** |
-| - Multiple Sources | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Battery Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Voltage/Current | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
-| - Power Stability | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Multiple Sources | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Battery Monitoring | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Voltage/Current | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Load Testing | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Power Stability | ✅ | ✅ | ❓ | ❓ | ❓ |
 | **Thermal Management** |
-| - Temperature Reading | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - PWM Fan Control | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Thermal Throttling | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Multi-zone Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Temperature Reading | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - PWM Fan Control | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Thermal Throttling | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Multi-zone Monitoring | ✅ | ✅ | ❓ | ❓ | ❓ |
 | **Physical Security** |
-| - Case Intrusion | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Motion Detection | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Voltage Monitoring | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Tamper Response | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Case Intrusion | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Motion Detection | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Voltage Monitoring | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Tamper Response | ✅ | ✅ | ❓ | ❓ | ❓ |
 | **Hardware Diagnostics** |
-| - Component Testing | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Sensor Validation | ✅ | ✅ | ✅ | ✅ | ❓ |
-| - Load Testing | ✅ | ✅ | ✅ | ❓ | ❓ |
-| - Fault Detection | ✅ | ✅ | ✅ | ✅ | ❓ |
+| - Component Testing | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Sensor Validation | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Load Testing | ✅ | ✅ | ❓ | ❓ | ❓ |
+| - Fault Detection | ✅ | ✅ | ❓ | ❓ | ❓ |
 
 Legend:
 - ✅ Completed
@@ -106,8 +106,8 @@ Legend:
 ## Hardware Requirements
 
 ### Raspberry Pi Support
-- Full support: RPi 3B+
-- Testing: RPi 5
+- Full support: RPi 3B+ (WIP)
+- Testing: RPi 5 (WIP)
 - Memory: 512MB minimum
 - Storage: Basic system only
 
