@@ -14,6 +14,7 @@ type Controller struct {
 	mux        sync.RWMutex
 	pins       map[string]gpio.PinIO
 	interrupts map[string]*interruptState
+	pwmPins    map[string]*pwmState
 	enabled    bool
 }
 
@@ -27,17 +28,22 @@ func New() (*Controller, error) {
 	return &Controller{
 		pins:       make(map[string]gpio.PinIO),
 		interrupts: make(map[string]*interruptState),
+		pwmPins:    make(map[string]*pwmState),
 		enabled:    true,
 	}, nil
 }
 
-// ConfigurePin sets up a GPIO pin for use
-func (c *Controller) ConfigurePin(name string, pin gpio.PinIO) error {
+// ConfigurePin sets up a GPIO pin for use with optional pull-up/down
+func (c *Controller) ConfigurePin(name string, pin gpio.PinIO, pull gpio.Pull) error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
 	if !c.enabled {
 		return fmt.Errorf("GPIO controller is disabled")
+	}
+
+	if err := pin.In(pull, gpio.NoEdge); err != nil {
+		return fmt.Errorf("failed to configure pin: %w", err)
 	}
 
 	c.pins[name] = pin
@@ -71,4 +77,23 @@ func (c *Controller) GetPinState(name string) (bool, error) {
 	}
 
 	return pin.Read() == gpio.High, nil
+}
+
+// Close releases all GPIO resources
+func (c *Controller) Close() error {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	// Disable all PWM outputs
+	for name := range c.pwmPins {
+		c.DisablePWM(name)
+	}
+
+	// Set all pins to safe state
+	for _, pin := range c.pins {
+		pin.Out(gpio.Low)
+	}
+
+	c.enabled = false
+	return nil
 }
